@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arquero Test</title>
+  <link rel="icon" href="data:;base64,=">
+    <!-- Bootstrap -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous"><style>
+  /* ... */
+  </style>
+</head>
+
+<body>
+
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/data.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/arquero@latest"></script>
+<script src="/air-monitor.js"></script>
+<script src="/air-monitor-plots.js"></script>
+
+
+
+<button onclick="debug()">DEBUG</button>
+
+<button onclick="combineMonitors()">monitor_combine</button>
+
+<button onclick="makePlot()">Plot</button>
+
+<figure class="highcharts-figure">
+    <div id="container"></div>
+</figure>
+
+<script>
+
+let monitor_objects = {
+  airnow: {meta: null, data: null},
+  airsis: {meta: null, data: null},
+  wrcc: {meta: null, data: null},
+};
+
+let monitor = null;
+
+document.addEventListener('DOMContentLoaded', function () {
+
+  function loadDataCallBack(data, provider, dfName) {
+    monitor_objects[provider][dfName] = data;
+  }
+
+  // Load AirNow data
+  provider_loadLatest(callback = loadDataCallBack, provider = 'airnow');
+  // Load AIRSIS data
+  provider_loadLatest(callback = loadDataCallBack, provider = 'airsis');
+  // Load WRCC data
+  provider_loadLatest(callback = loadDataCallBack, provider = 'wrcc');
+
+});
+
+
+// Populate the global monitor object
+makePlot = function() {
+  monitor_timeseriesPlot('container', monitor, id = 1017);
+}
+
+// Populate the global monitor object
+combineMonitors = function() {
+  monitor = monitor_combineAAW(monitor_objects);
+}
+
+debug = function() {
+
+  let a = 1;
+
+  monitor = monitor_combineAAW(monitor_objects);
+
+  a = 2;
+
+}
+
+
+
+</script>  
+
+</body>
+
+</html>
+
