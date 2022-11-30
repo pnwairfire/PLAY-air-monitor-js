@@ -14,7 +14,7 @@
  * @param {String} provider One of "airnow|airsis|wrcc".
  * @archiveBaseUrl {String} Base URL for monitoring v2 data files.
  */
-provider_loadLatest = function(
+provider_loadLatest = async function(
   callback = null,
   provider = null,
   archiveBaseUrl = "https://airfire-data-exports.s3.us-west-2.amazonaws.com/monitoring/v2",
@@ -30,13 +30,9 @@ provider_loadLatest = function(
   url = "/" + provider + "_PM2.5_latest_meta.csv";
   console.log("loading ... " + url);
 
-  // Everything parses correctly except 'dataIngestUnitID'
-  aq.loadCSV(url)
-    .then(dt => {
-      dt = dt.select(monitor_coreMetadataNames);
-      callback(dt, provider, 'meta');
-    })
-    .catch(err => { console.log(err); });
+  dt = await aq.loadCSV(url);
+  monitor_objects[provider]['meta'] = dt.select(monitor_coreMetadataNames);
+
 
   // * Load data -----
   url = archiveBaseUrl + "/latest/data/" + provider + "_PM2.5_latest_data.csv";
@@ -44,18 +40,10 @@ provider_loadLatest = function(
   url = "/" + provider + "_PM2.5_latest_data.csv";
   console.log("loading ... " + url);
 
-  let data_parseObject = {
-    datetime: Date,
-  }
+  dt = await aq.loadCSV(url);
+  monitor_objects[provider]['data'] = negativeToZero(dt);
 
-  aq.loadCSV(url)
-    .then(dt => {
-      dt = negativeToZero(dt);
-      callback(dt, provider, 'data');
-    })
-    .catch(err => { console.log(err); });
-
-    console.log("Finished loading " + provider + " meta + data.")
+  console.log("Finished loading " + provider + " meta + data.")
 
 }
 
@@ -213,7 +201,8 @@ negativeToZero = function(dt) {
   // Programmatically create a values object that replaces values
   const ids = dt.columnNames();
   let values = {}
-  ids.map(id => values[id] = "d => d['" + id + "'] <= 0 ? 0 : d['" + id + "']");
+  // NOTE:  'null <= 0' evaluates to true. So we have to test with '< 0'.
+  ids.map(id => values[id] = "d => d['" + id + "'] < 0 ? 0 : d['" + id + "']");
   // Create and return the dt with all negative values replaced
   let new_dt = dt.derive(values);
   return(new_dt)
