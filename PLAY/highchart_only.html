@@ -46,21 +46,21 @@ let monitor = null;
 
 document.addEventListener('DOMContentLoaded', function () {
 
-  console.time('loadData');
   loadData();
-  console.timeEnd('loadData');
  
 });
 
 
 // Load data and combine after all data are loaded
 loadData = async function() {
+  console.time('loadData');
   // Block until data arrives. Same behavior as in the R package.
   await airnow_loadLatest(monitor_objects.airnow);
   await airsis_loadLatest(monitor_objects.airsis);
   await wrcc_loadLatest(monitor_objects.wrcc);
   // Combine after all data has been downlaoded
   monitor = monitor_combineAAW(monitor_objects);
+  console.timeEnd('loadData');
 }
 
 // Populate the global monitor object
