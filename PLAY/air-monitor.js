@@ -1,5 +1,4 @@
 // https://uwdata.github.io/arquero/
-// https://uwdata.github.io/arquero/api/#loadCSV
 
 // ----- Data load -------------------------------------------------------------
 
@@ -7,15 +6,15 @@
  * Load latest Monitor objects from USFS AirFire repositories for 'airnow',
  * 'airsis' and 'wrcc' data.
  * 
- * This function has no return but has the side effect of calling the callback
- * function which is responsible for assigning dataframes to objects in the 
- * global namespace.
- * @param {Function} callback A callback function responsible for assigning the loaded data.
+ * This function replaces the 'meta' and 'data' properties of the passed in
+ * 'monitorObj' with the latest available data. Data are updated every few minutes.
+ * @param {Object} monitorObj A Monitor object with 'meta' and 'data' properties.
+ * Data in these tables will be replaced with new data obtained from USFS AirFire.
  * @param {String} provider One of "airnow|airsis|wrcc".
  * @archiveBaseUrl {String} Base URL for monitoring v2 data files.
  */
 provider_loadLatest = async function(
-  callback = null,
+  monitorObj = null,
   provider = null,
   archiveBaseUrl = "https://airfire-data-exports.s3.us-west-2.amazonaws.com/monitoring/v2",
 ) {
@@ -26,26 +25,72 @@ provider_loadLatest = async function(
 
   // * Load meta -----
   var url = archiveBaseUrl + "/latest/data/" + provider + "_PM2.5_latest_meta.csv";
-  // // //url = "http://127.0.0.1:8080/" + provider + "_PM2.5_latest_meta.csv";
-  url = "/" + provider + "_PM2.5_latest_meta.csv";
+  // url = "/" + provider + "_PM2.5_latest_meta.csv";
   console.log("loading ... " + url);
 
   dt = await aq.loadCSV(url);
-  monitor_objects[provider]['meta'] = dt.select(monitor_coreMetadataNames);
+  // monitor_objects[provider]['meta'] = dt.select(monitor_coreMetadataNames);
+  monitorObj['meta'] = monitor_parseMeta(dt);
 
 
   // * Load data -----
   url = archiveBaseUrl + "/latest/data/" + provider + "_PM2.5_latest_data.csv";
-  // // // url = "http://127.0.0.1:8080/" + provider + "_PM2.5_latest_data.csv";
-  url = "/" + provider + "_PM2.5_latest_data.csv";
+  // url = "/" + provider + "_PM2.5_latest_data.csv";
   console.log("loading ... " + url);
 
   dt = await aq.loadCSV(url);
-  monitor_objects[provider]['data'] = negativeToZero(dt);
+  //monitor_objects[provider]['data'] = negativeToZero(dt);
+  monitorObj['data'] = monitor_parseData(dt);
 
   console.log("Finished loading " + provider + " meta + data.")
 
 }
+
+// ----- data ingest -----------------------------------------------------------
+
+/**
+ * Automatic parsing works quite well. We help out with:
+ *   1. replace 'NA' with null
+ *   2. only retain core metadata columns
+ */
+monitor_parseMeta = function(dt) {
+  // Programmatically create a values object that replaces values. See:
+  //   https://uwdata.github.io/arquero/api/expressions
+
+  const ids = dt.columnNames();
+
+  // Replace 'NA' with null
+  let values = {};
+  ids.map(id => values[id] = "d => d['" + id + "'] === 'NA' ? null : d['" + id + "']");
+  
+  return(dt.derive(values).select(monitor_coreMetadataNames));
+}
+
+/** 
+ * Automatic parsing doesn't automatically recognize 'NA' as null so data gets
+ * parsed as text strings. We fix things by:
+ *   1. replace 'NA' with null and convert to numeric
+ *   2. lift any negative values to zero (matching the default R code behavior)
+ */
+monitor_parseData = function(dt) {
+  // Programmatically create a values object that replaces values. See:
+  //   https://uwdata.github.io/arquero/api/expressions
+
+  const ids = dt.columnNames().splice(1);  // remove 'datetime'
+
+  // Replace 'NA' with null
+  let values1 = {};
+  ids.map(id => values1[id] = "d => d['" + id + "'] === 'NA' ? null : op.parse_float(d['" + id + "'])");
+
+  // Lift up negative values to zero
+  // NOTE:  'null <= 0' evaluates to true. So we have to test with '< 0'.
+  let values2 = {};
+  ids.map(id => values2[id] = "d => d['" + id + "'] < 0 ? 0 : d['" + id + "']");
+
+  // Return the modified data table
+  return(dt.derive(values1).derive(values2));
+}
+
 
 // ----- monitor manipulation --------------------------------------------------
 
@@ -81,6 +126,19 @@ monitor_select = function(monitor, ids) {
  */
 monitor_dropEmpty = function(monitor) {
 
+
+  validCount = function(dt) {
+    // Programmatically create a values object that replaces values
+    const ids = dt.columnNames();
+    let values = {}
+    ids.map(id => values[id] = "d => op.valid(d['" + id + "'])");
+    // Create and return the dt with all negative values replaced
+    let new_dt = dt.rollup(values);
+    return(new_dt)
+  }
+
+  // -----
+  
   var meta = monitor.meta;
   var data = monitor.data;
 
@@ -120,48 +178,15 @@ monitor_dropEmpty = function(monitor) {
  */
 monitor_combineAAW = function(monitor_objects) {
 
-  // Combining meta is easy as they are guaranteed to have the same columns
-  let meta = 
-    monitor_objects.airnow.meta
+  // Combining meta is easy when they are guaranteed to have the same columns
+  let meta = monitor_objects.airnow.meta
     .concat(monitor_objects.airsis.meta)
     .concat(monitor_objects.wrcc.meta);
 
-  // Combining data is harder
-  let data1 = monitor_objects.airnow.data;
-  let data2 = monitor_objects.airsis.data;
-  let data3 = monitor_objects.wrcc.data;
-
-  let max_starttime = data1.array('datetime')[0];
-  let starttime_2 =  data2.array('datetime')[0];
-  let starttime_3 =  data3.array('datetime')[0];
-  if (starttime_2 > max_starttime) max_starttime = starttime_2;
-  if (starttime_3 > max_starttime) max_starttime = starttime_3;
-
-  // TODO:  We should extend the short timespans rather than cut the long one
-  let min_endtime = data1.array('datetime')[data1.numRows() - 1];
-  let endtime_2 =  data2.array('datetime')[data2.numRows() - 1];
-  let endtime_3 =  data3.array('datetime')[data3.numRows() - 1];
-  if (endtime_2 < min_endtime) min_endtime = endtime_2;
-  if (endtime_3 < min_endtime) min_endtime = endtime_3;
-
-  data1 = data1
-    .params({start: max_starttime, end: min_endtime})
-    .filter((d, $) => d.datetime >= $.start)
-    .filter((d, $) => d.datetime <= $.end)
-
-  data2 = data2
-    .params({start: max_starttime, end: min_endtime})
-    .filter((d, $) => d.datetime >= $.start)
-    .filter((d, $) => d.datetime <= $.end)
-   .select(aq.not('datetime'))
-
-  data3 = data3
-    .params({start: max_starttime, end: min_endtime})
-    .filter((d, $) => d.datetime >= $.start)
-    .filter((d, $) => d.datetime <= $.end)
-    .select(aq.not('datetime'))
-
-  let data = data1.assign(data2).assign(data3);
+  // Combining data is easy but drops datetimes that are not shared
+  let data = monitor_objects.airnow.data
+    .join(monitor_objects.airsis.data, on = 'datetime')
+    .join(monitor_objects.wrcc.data, on = 'datetime');
 
   let return_monitor = {
     meta: meta,
@@ -196,29 +221,6 @@ const monitor_coreMetadataNames = [
   "AQSID",
   "fullAQSID", 
 ];
-
-negativeToZero = function(dt) {
-  // Programmatically create a values object that replaces values
-  const ids = dt.columnNames();
-  let values = {}
-  // NOTE:  'null <= 0' evaluates to true. So we have to test with '< 0'.
-  ids.map(id => values[id] = "d => d['" + id + "'] < 0 ? 0 : d['" + id + "']");
-  // Create and return the dt with all negative values replaced
-  let new_dt = dt.derive(values);
-  return(new_dt)
-}
-
-validCount = function(dt) {
-  // Programmatically create a values object that replaces values
-  const ids = dt.columnNames();
-  let values = {}
-  ids.map(id => values[id] = "d => opt.valid(d['" + id + "'])");
-  // Create and return the dt with all negative values replaced
-  let new_dt = dt.rollup(values);
-  return(new_dt)
-}
-
-
 
 // ===== DEBUG =================================================================
 

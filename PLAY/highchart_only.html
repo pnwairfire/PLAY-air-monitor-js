@@ -48,16 +48,12 @@ let monitor = null;
 
 document.addEventListener('DOMContentLoaded', function () {
 
-  function loadDataCallBack(data, provider, dfName) {
-    monitor_objects[provider][dfName] = data;
-  }
-
   // Load AirNow data
-  provider_loadLatest(callback = loadDataCallBack, provider = 'airnow');
+  provider_loadLatest(monitor_objects.airnow, provider = 'airnow');
   // Load AIRSIS data
-  provider_loadLatest(callback = loadDataCallBack, provider = 'airsis');
+  provider_loadLatest(monitor_objects.airsis, provider = 'airsis');
   // Load WRCC data
-  provider_loadLatest(callback = loadDataCallBack, provider = 'wrcc');
+  provider_loadLatest(monitor_objects.wrcc, provider = 'wrcc');
 
 });
 
