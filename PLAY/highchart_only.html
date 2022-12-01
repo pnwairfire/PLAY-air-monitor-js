@@ -36,12 +36,6 @@
 
 <script>
 
-let monitor_objects = {
-  airnow: {meta: null, data: null},
-  airsis: {meta: null, data: null},
-  wrcc: {meta: null, data: null},
-};
-
 let monitor = null;
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -53,6 +47,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Load data and combine after all data are loaded
 loadData = async function() {
+  let monitor_objects = {
+    airnow: {meta: null, data: null},
+    airsis: {meta: null, data: null},
+    wrcc: {meta: null, data: null},
+  };
+
   console.time('loadData');
   // Block until data arrives. Same behavior as in the R package.
   await airnow_loadLatest(monitor_objects.airnow);
