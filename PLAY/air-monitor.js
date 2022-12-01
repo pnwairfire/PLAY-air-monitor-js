@@ -25,25 +25,47 @@ provider_loadLatest = async function(
 
   // * Load meta -----
   var url = archiveBaseUrl + "/latest/data/" + provider + "_PM2.5_latest_meta.csv";
-  // url = "/" + provider + "_PM2.5_latest_meta.csv";
-  console.log("loading ... " + url);
-
   dt = await aq.loadCSV(url);
-  // monitor_objects[provider]['meta'] = dt.select(monitor_coreMetadataNames);
   monitorObj['meta'] = monitor_parseMeta(dt);
-
 
   // * Load data -----
   url = archiveBaseUrl + "/latest/data/" + provider + "_PM2.5_latest_data.csv";
-  // url = "/" + provider + "_PM2.5_latest_data.csv";
-  console.log("loading ... " + url);
-
   dt = await aq.loadCSV(url);
-  //monitor_objects[provider]['data'] = negativeToZero(dt);
   monitorObj['data'] = monitor_parseData(dt);
 
-  console.log("Finished loading " + provider + " meta + data.")
+}
 
+airnow_loadLatest = async function(
+  monitorObj = null,
+  archiveBaseUrl = "https://airfire-data-exports.s3.us-west-2.amazonaws.com/monitoring/v2",
+) {
+  try {
+    await provider_loadLatest(monitorObj, 'airnow', archiveBaseUrl);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+airsis_loadLatest = async function(
+  monitorObj = null,
+  archiveBaseUrl = "https://airfire-data-exports.s3.us-west-2.amazonaws.com/monitoring/v2",
+) {
+  try {
+    await provider_loadLatest(monitorObj, 'airsis', archiveBaseUrl);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+wrcc_loadLatest = async function(
+  monitorObj = null,
+  archiveBaseUrl = "https://airfire-data-exports.s3.us-west-2.amazonaws.com/monitoring/v2",
+) {
+  try {
+    await provider_loadLatest(monitorObj, 'wrcc', archiveBaseUrl);
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 // ----- data ingest -----------------------------------------------------------

@@ -28,8 +28,6 @@
 
 <button onclick="debug()">DEBUG</button>
 
-<button onclick="combineMonitors()">monitor_combine</button>
-
 <button onclick="makePlot()">Plot</button>
 
 <figure class="highcharts-figure">
@@ -48,24 +46,26 @@ let monitor = null;
 
 document.addEventListener('DOMContentLoaded', function () {
 
-  // Load AirNow data
-  provider_loadLatest(monitor_objects.airnow, provider = 'airnow');
-  // Load AIRSIS data
-  provider_loadLatest(monitor_objects.airsis, provider = 'airsis');
-  // Load WRCC data
-  provider_loadLatest(monitor_objects.wrcc, provider = 'wrcc');
-
+  console.time('loadData');
+  loadData();
+  console.timeEnd('loadData');
+ 
 });
 
+
+// Load data and combine after all data are loaded
+loadData = async function() {
+  // Block until data arrives. Same behavior as in the R package.
+  await airnow_loadLatest(monitor_objects.airnow);
+  await airsis_loadLatest(monitor_objects.airsis);
+  await wrcc_loadLatest(monitor_objects.wrcc);
+  // Combine after all data has been downlaoded
+  monitor = monitor_combineAAW(monitor_objects);
+}
 
 // Populate the global monitor object
 makePlot = function() {
   monitor_timeseriesPlot('container', monitor, id = 1017);
-}
-
-// Populate the global monitor object
-combineMonitors = function() {
-  monitor = monitor_combineAAW(monitor_objects);
 }
 
 debug = function() {
