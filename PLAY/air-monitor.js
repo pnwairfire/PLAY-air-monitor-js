@@ -82,10 +82,16 @@ monitor_parseMeta = function(dt) {
   const ids = dt.columnNames();
 
   // Replace 'NA' with null
-  let values = {};
-  ids.map(id => values[id] = "d => d['" + id + "'] === 'NA' ? null : d['" + id + "']");
+  let values1 = {};
+  ids.map(id => values1[id] = "d => d['" + id + "'] === 'NA' ? null : d['" + id + "']");
   
-  return(dt.derive(values).select(monitor_coreMetadataNames));
+  // Guarantee numeric
+  let values2 = {
+    longitude: d => op.parse_float(d.longitude),
+    latitude: d => op.parse_float(d.latitude),
+    elevation: d => op.parse_float(d.elevation)
+  }
+  return(dt.derive(values1).derive(values2).select(monitor_coreMetadataNames));
 }
 
 /** 
@@ -150,11 +156,10 @@ monitor_dropEmpty = function(monitor) {
 
 
   validCount = function(dt) {
-    // Programmatically create a values object that replaces values
+    // Programmatically create a values object that counts valid values
     const ids = dt.columnNames();
     let values = {}
     ids.map(id => values[id] = "d => op.valid(d['" + id + "'])");
-    // Create and return the dt with all negative values replaced
     let new_dt = dt.rollup(values);
     return(new_dt)
   }
@@ -189,6 +194,56 @@ monitor_dropEmpty = function(monitor) {
   return(return_monitor);
 
 }
+
+
+/**
+ * Augment monitor.meta with current status information derived from monitor.data
+ * @param {Monitor} monitor Monitor object with 'meta' and 'data'.
+ * @returns {Table} An enhanced version of monitor.meta.
+ */
+ monitor_getCurrentStatus = function(monitor) {
+
+  let data = monitor.data;
+
+  let ids = data.columnNames().slice(1);
+
+  // Create a data table with no 'datetime' but an added 'index' column
+  // NOTE:  op.row_number() starts at 1
+  let dataBrick = data.select(aq.not('datetime')).derive({index: d => op.row_number() - 1});
+
+  // Programmatically create a values object that replaces valid values with a row index
+  let values1 = {}
+  ids.map(id => values1[id] = "d => op.is_finite(d['" + id + "']) ? d.index : 0");
+
+  // Programmatically create a values object that finds the max for each columnm
+  let values2 = {}
+  ids.map(id => values2[id] = "d => op.max(d['" + id + "'])");
+
+  // Create a single-row dt with the row index of the last valid PM2.5 value
+  // Then extract the row as a an object with deviceID: index
+  let lastValidIndexObj = dataBrick.derive(values1).rollup(values2).object(0);
+
+  // Array of indices;
+  let lastValidIndex = Object.values(lastValidIndexObj);
+
+  // Map indices onto an array of datetimes
+  let lastValidDatetime = lastValidIndex.map(index => data.array('datetime')[index]);
+
+  // Map ids onto an array of PM2.5 values
+  let lastValidPM_25 = ids.map((id, index) => data.get(id, lastValidIndex[index]));
+
+  // Create a data table with current status columns
+  let lastValidDT = aq.table({
+    lastValidDatetime: lastValidDatetime,
+    lastValidPM_25: lastValidPM_25
+  })
+
+  // Return the enhanced metadata  
+  let metaPlus = monitor.meta.assign(lastValidDT)
+
+  return(metaPlus)
+
+ }
 
 
 // ----- SPECIAL FOR THE UI ----------------------------------------------------
@@ -281,6 +336,125 @@ dt.select(validNames).print();
 // datetimes that are not shared. We should fluff up incoming arrays to the
 // full extent before joining.
 var dd = d1.join(d2, on = 'datetime').join(d3, on = 'datetime');
+
+
+
+}
+
+// CREATE A FEATURE
+if ( false ) {
+
+  let exampleGeoJSON = 
+  {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [-119.784, 37.6745]
+        },
+        "properties": {
+          "deviceDeploymentID": "121fad25495a747a_apcd.1020",
+          "AQSID": "MMNPS1020",
+          "fullAQSID": "840MMNPS1020",
+          "locationName": "MMNPS1020",
+          "timezone": "America/Los_Angeles",
+          "dataIngestSource": "AIRSIS",
+          "dataIngestUnitID": "1020",
+          "currentStatus_processingTime": "2022-12-01 21:04:50",
+          "last_validTime": "2022-12-01 16:00:00",
+          "last_validLocalTimestamp": "2022-12-01 08:00:00 PST",
+          "last_nowcast": " 2.4",
+          "last_PM2.5": " 0.0",
+          "last_latency": "  3",
+          "yesterday_PM2.5_avg": "4.9"
+        }
+      },
+    ]
+  };
+
+  rowToFeature = function(obj) {
+
+    let feature = {
+      type: "Feature",
+      geometry: {
+        coordinates: [obj.longitude, obj.latitude]
+      },
+      properties: {
+        deviceDeploymentID: obj.deviceDeploymentID,
+        AQSID :obj.AQSID,
+        fullAQSID: obj.fullAQSID,
+        locationName: obj.locationName,
+        timezone: obj.timezone,
+        dataIngnestSource: obj.dataIngestSource,
+        dataIngestUnitID: null,
+        currentStatus_processingTime: null,
+        last_validTime: boj.lastValidDatetime,
+        last_validLocalTimestamp: null,
+        last_nowcast: null,
+        last_PM2_5: obj.lastValidPM_25,
+        last_latency: null,
+        yesterday_PM2_5_avg: null
+      }
+    }
+
+    return feature
+
+  }
+
+ // // //features = monitor.meta.objects().map(rowToFeature);
+
+}
+
+// LAST VALID TIME
+if ( false ) {
+
+  // TODO:  arrange by datetime
+  let a = monitor.data.select(aq.not('datetime')); // remove 'datetime'
+  // find last two valid values
+
+
+  a = aq.table({
+    'a': [1,2,3,1,null,7,3,null,5,3],
+    'b': [7,8,1,9,3,3,2,6,3,2],
+    'c': [null,null,null,null,3,5,6,2,3,null]
+  })
+
+  lastValidIndex = function(dt) {
+
+    let ids = dt.columnNames().slice(1);
+
+    // NOTE:  op.row_number() starts at 1
+    let dataBrick = dt.select(aq.not('datetime')).derive({index: d => op.row_number() - 1});
+
+    // Programmatically create a values object that replaces valid values with a row index
+    let values1 = {}
+    ids.map(id => values1[id] = "d => op.is_finite(d['" + id + "']) ? d.index : 0");
+
+    // Programmatically create a values object that finds the max for each columnm
+    let values2 = {}
+    ids.map(id => values2[id] = "d => op.max(d['" + id + "'])");
+
+    // Create and return the dt with all negative values replaced
+    let lastValidIndexObj = dataBrick.derive(values1).rollup(values2).object(0);
+
+    let lastValidIndex = Object.values(lastValidIndexObj);
+
+    let lastValidDatetime = lastValidIndex.map(index => dt.array('datetime')[index]);
+
+    let lastValidPM_25 = ids.map((id, index) => dt.get(id, lastValidIndex[index]));
+
+    let lastValidDT = aq.table({
+      lastValidDatetime: lastValidDatetime,
+      lastValidPM_25: lastValidPM_25
+    })
+
+    let metaPlus = monitor.meta.assign(lastValidDT)
+
+    return(new_dt)
+
+  }
 
 
 
