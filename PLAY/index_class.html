@@ -20,10 +20,8 @@
 
 <script>
 
-let monitor = new Monitor;
-let airnow = new Monitor;
-let airsis = new Monitor;
-let wrcc = new Monitor;
+let monitor = null;
+
 
 document.addEventListener('DOMContentLoaded', function () {
   loadData(); 
@@ -32,22 +30,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Load data and combine after all data are loaded
 loadData = async function() {
-  console.log('loadData')
-
-
-
   console.time('loadData');
 
-  // Block until data arrives. Same behavior as in the R package.
+  // These temporary monitors are only for loading data
+  let airnow = new Monitor;
+  let airsis = new Monitor;
+  let wrcc = new Monitor;
+
+  // Block until data arrives.
   await airnow.loadLatest('airnow');
   await airsis.loadLatest('airsis');
   await wrcc.loadLatest('wrcc');
 
   // Combine after all data has been downlaoded
-  // monitor = monitor_combineAAW(monitor_objects);
+  monitor = airnow.combine(airsis).combine(wrcc);
 
   console.timeEnd('loadData');
-
 }
 
 
@@ -55,7 +53,6 @@ debug = function() {
   let a = 1;
   a = 2;
 }
-
 
 
 </script>  

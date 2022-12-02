@@ -5,9 +5,12 @@ class Monitor {
   meta = null;
   data = null;
 
-  constructor() {
-    this.meta = 'meta';
-    this.data = 'data';
+  constructor(
+    meta = null,
+    data = null
+  ) {
+    this.meta = meta;
+    this.data = data;
   }
 
   // ----- Data load -------------------------------------------------------------
@@ -64,6 +67,152 @@ class Monitor {
     this.data = this.#parseData(dt);
 
   }
+
+  // ----- Monitor manipulation ------------------------------------------------
+
+  /**
+   * Combine another Monitor object with 'this' object.
+   * 
+   * A new Monitor object is returned containing all timeseries and metadata from
+   * 'this' Monitor as well as the passed in 'monitor'. This allows for chaining to
+   * combine multiple Monitor objects.
+   * @param {Monitor} monitor A monitor object.
+   * @returns {Monitor} A combined monitor object.
+   */
+  combine(monitor) {
+
+    let meta = this.meta.concat(monitor.meta);
+    let data = this.data.join(monitor.data); // automatically joins on 'datetime' as the only shared column
+
+    let return_monitor = new Monitor(meta, data);
+
+    return(return_monitor);
+
+  }
+
+  // /**
+  //  * Subset and reorder time series within a monitor object.
+  //  * @param {Monitor} monitor Monitor object with 'meta' and 'data'.
+  //  * @param {...String} ids deviceDeploymentIDs of the time series to select.
+  //  * @returns {Monitor} A reordered (subset) of the incoming monitor object.
+  //  */
+  // monitor_select = function(monitor, ids) {
+
+  //   let meta = monitor.meta
+  //     .params({ids: ids})
+  //     .filter( (d, $) => op.includes($.ids, d.deviceDeploymentID) );
+
+  //   let data = monitor.data.select('datetime', ids);
+
+  //   // Return
+  //   let return_monitor = {
+  //     meta: meta,
+  //     data: data
+  //   }
+
+  //   return(return_monitor);
+
+  // }
+
+
+  // /**
+  //  * Drop monitor object time series with all missing data.
+  //  * @param {Monitor} monitor Monitor object with 'meta' and 'data'.
+  //  * @returns {Monitor} A subset of the incoming monitor object.
+  //  */
+  // monitor_dropEmpty = function(monitor) {
+
+
+  //   validCount = function(dt) {
+  //     // Programmatically create a values object that counts valid values
+  //     const ids = dt.columnNames();
+  //     let values = {}
+  //     ids.map(id => values[id] = "d => op.valid(d['" + id + "'])");
+  //     let new_dt = dt.rollup(values);
+  //     return(new_dt)
+  //   }
+
+  //   // -----
+    
+  //   var meta = monitor.meta;
+  //   var data = monitor.data;
+
+  //   // Single row table with the count of valid values 
+  //   var countObj = validCount(data).object(0)
+  //   // {a: 4, b: 4, c: 0}
+
+  //   var ids = [];
+  //   for (const [key, value] of Object.entries(countObj)) {
+  //     if ( value > 0 ) ids.push(key);
+  //   }
+
+  //   // Subset data and meta
+  //   data = data.select(ids);
+
+  //   meta = meta
+  //     .params({ids: ids})
+  //     .filter( (d, $) => op.includes($.ids, d.deviceDeploymentID) );
+
+  //   // Return
+  //   let return_monitor = {
+  //     meta: meta,
+  //     data: data
+  //   }
+
+  //   return(return_monitor);
+
+  // }
+
+
+// /**
+//  * Augment monitor.meta with current status information derived from monitor.data
+//  * @param {Monitor} monitor Monitor object with 'meta' and 'data'.
+//  * @returns {Table} An enhanced version of monitor.meta.
+//  */
+//  monitor_getCurrentStatus = function(monitor) {
+
+//   let data = monitor.data;
+
+//   let ids = data.columnNames().slice(1);
+
+//   // Create a data table with no 'datetime' but an added 'index' column
+//   // NOTE:  op.row_number() starts at 1
+//   let dataBrick = data.select(aq.not('datetime')).derive({index: d => op.row_number() - 1});
+
+//   // Programmatically create a values object that replaces valid values with a row index
+//   let values1 = {}
+//   ids.map(id => values1[id] = "d => op.is_finite(d['" + id + "']) ? d.index : 0");
+
+//   // Programmatically create a values object that finds the max for each columnm
+//   let values2 = {}
+//   ids.map(id => values2[id] = "d => op.max(d['" + id + "'])");
+
+//   // Create a single-row dt with the row index of the last valid PM2.5 value
+//   // Then extract the row as a an object with deviceID: index
+//   let lastValidIndexObj = dataBrick.derive(values1).rollup(values2).object(0);
+
+//   // Array of indices;
+//   let lastValidIndex = Object.values(lastValidIndexObj);
+
+//   // Map indices onto an array of datetimes
+//   let lastValidDatetime = lastValidIndex.map(index => data.array('datetime')[index]);
+
+//   // Map ids onto an array of PM2.5 values
+//   let lastValidPM_25 = ids.map((id, index) => data.get(id, lastValidIndex[index]));
+
+//   // Create a data table with current status columns
+//   let lastValidDT = aq.table({
+//     lastValidDatetime: lastValidDatetime,
+//     lastValidPM_25: lastValidPM_25
+//   })
+
+//   // Return the enhanced metadata  
+//   let metaPlus = monitor.meta.assign(lastValidDT)
+
+//   return(metaPlus)
+
+//  }
+
 
   // ----- Private methods -----------------------------------------------------
 
