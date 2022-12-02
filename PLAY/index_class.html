@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arquero Test</title>
+  <link rel="icon" href="data:;base64,=">
+  <style>
+  /* ... */
+  </style>
+</head>
+
+<body>
+
+<script src="https://cdn.jsdelivr.net/npm/arquero@latest"></script>
+<script src="/air-monitor-class.js"></script>
+
+<button onclick="debug()">DEBUG</button>
+
+<script>
+
+let monitor = new Monitor;
+let airnow = new Monitor;
+let airsis = new Monitor;
+let wrcc = new Monitor;
+
+document.addEventListener('DOMContentLoaded', function () {
+  loadData(); 
+});
+
+
+// Load data and combine after all data are loaded
+loadData = async function() {
+  console.log('loadData')
+
+
+
+  console.time('loadData');
+
+  // Block until data arrives. Same behavior as in the R package.
+  await airnow.loadLatest('airnow');
+  await airsis.loadLatest('airsis');
+  await wrcc.loadLatest('wrcc');
+
+  // Combine after all data has been downlaoded
+  // monitor = monitor_combineAAW(monitor_objects);
+
+  console.timeEnd('loadData');
+
+}
+
+
+debug = function() {
+  let a = 1;
+  a = 2;
+}
+
+
+
+</script>  
+
+</body>
+
+</html>
+
