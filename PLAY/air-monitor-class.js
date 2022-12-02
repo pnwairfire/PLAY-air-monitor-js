@@ -84,84 +84,73 @@ class Monitor {
     let meta = this.meta.concat(monitor.meta);
     let data = this.data.join(monitor.data); // automatically joins on 'datetime' as the only shared column
 
+    // Return
     let return_monitor = new Monitor(meta, data);
-
     return(return_monitor);
 
   }
 
-  // /**
-  //  * Subset and reorder time series within a monitor object.
-  //  * @param {Monitor} monitor Monitor object with 'meta' and 'data'.
-  //  * @param {...String} ids deviceDeploymentIDs of the time series to select.
-  //  * @returns {Monitor} A reordered (subset) of the incoming monitor object.
-  //  */
-  // monitor_select = function(monitor, ids) {
+  /**
+   * Subset and reorder time series within a monitor object.
+   * @param {...String} ids deviceDeploymentIDs of the time series to select.
+   * @returns {Monitor} A reordered (subset) of the incoming monitor object.
+   */
+select(ids) {
 
-  //   let meta = monitor.meta
-  //     .params({ids: ids})
-  //     .filter( (d, $) => op.includes($.ids, d.deviceDeploymentID) );
+    let meta = this.meta
+      .params({ids: ids})
+      .filter( (d, $) => op.includes($.ids, d.deviceDeploymentID) );
 
-  //   let data = monitor.data.select('datetime', ids);
+    let data = this.data.select('datetime', ids);
 
-  //   // Return
-  //   let return_monitor = {
-  //     meta: meta,
-  //     data: data
-  //   }
+    // Return
+    let return_monitor = new Monitor(meta, data);
+    return(return_monitor);
 
-  //   return(return_monitor);
-
-  // }
+  }
 
 
-  // /**
-  //  * Drop monitor object time series with all missing data.
-  //  * @param {Monitor} monitor Monitor object with 'meta' and 'data'.
-  //  * @returns {Monitor} A subset of the incoming monitor object.
-  //  */
-  // monitor_dropEmpty = function(monitor) {
+  /**
+   * Drop monitor object time series with all missing data.
+   * @returns {Monitor} A subset of the incoming monitor object.
+   */
+  dropEmpty() {
 
+    let validCount = function(dt) {
+      // Programmatically create a values object that counts valid values
+      const ids = dt.columnNames();
+      let values = {}
+      ids.map(id => values[id] = "d => op.valid(d['" + id + "'])");
+      let new_dt = dt.rollup(values);
+      return(new_dt)
+    }
 
-  //   validCount = function(dt) {
-  //     // Programmatically create a values object that counts valid values
-  //     const ids = dt.columnNames();
-  //     let values = {}
-  //     ids.map(id => values[id] = "d => op.valid(d['" + id + "'])");
-  //     let new_dt = dt.rollup(values);
-  //     return(new_dt)
-  //   }
-
-  //   // -----
+    // -----
     
-  //   var meta = monitor.meta;
-  //   var data = monitor.data;
+    var meta = this.meta;
+    var data = this.data;
 
-  //   // Single row table with the count of valid values 
-  //   var countObj = validCount(data).object(0)
-  //   // {a: 4, b: 4, c: 0}
+    // Single row table with the count of valid values 
+    var countObj = validCount(data).object(0);
+    // {a: 4, b: 4, c: 0}
 
-  //   var ids = [];
-  //   for (const [key, value] of Object.entries(countObj)) {
-  //     if ( value > 0 ) ids.push(key);
-  //   }
+    var ids = [];
+    for (const [key, value] of Object.entries(countObj)) {
+      if ( value > 0 ) ids.push(key);
+    }
 
-  //   // Subset data and meta
-  //   data = data.select(ids);
+    // Subset data and meta
+    data = data.select(ids);
 
-  //   meta = meta
-  //     .params({ids: ids})
-  //     .filter( (d, $) => op.includes($.ids, d.deviceDeploymentID) );
+    meta = meta
+      .params({ids: ids})
+      .filter( (d, $) => op.includes($.ids, d.deviceDeploymentID) );
 
-  //   // Return
-  //   let return_monitor = {
-  //     meta: meta,
-  //     data: data
-  //   }
+    // Return
+    let return_monitor = new Monitor(meta, data);
+    return(return_monitor);
 
-  //   return(return_monitor);
-
-  // }
+  }
 
 
 // /**

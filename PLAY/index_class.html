@@ -13,10 +13,23 @@
 
 <body>
 
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/data.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/arquero@latest"></script>
 <script src="/air-monitor-class.js"></script>
+<script src="/air-monitor-plots-class.js"></script>
 
 <button onclick="debug()">DEBUG</button>
+
+<button onclick="makePlot()">Plot</button>
+
+<figure class="highcharts-figure">
+    <div id="container"></div>
+</figure>
 
 <script>
 
@@ -43,11 +56,15 @@ loadData = async function() {
   await wrcc.loadLatest('wrcc');
 
   // Combine after all data has been downlaoded
-  monitor = airnow.combine(airsis).combine(wrcc);
+  monitor = airnow.combine(airsis).combine(wrcc).dropEmpty();
 
   console.timeEnd('loadData');
 }
 
+// 
+makePlot = function() {
+  monitor_timeseriesPlot('container', monitor, id = 1017);
+}
 
 debug = function() {
   let a = 1;
