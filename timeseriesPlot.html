@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arquero Test</title>
+  <link rel="icon" href="data:;base64,=">
+</head>
+
+<body>
+
+<!-- Load javascript -->
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/data.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/arquero@latest"></script>
+<script src="./air-monitor.js"></script>
+<script src="./air-monitor-plots.js"></script>
+
+<!------ Begin page ----------------------------------------------------------->
+
+<button onclick="debug()">DEBUG</button>
+
+<button onclick="makePlot()">Plot</button>
+
+<figure class="highcharts-figure">
+    <div id="timeseries-plot"></div>
+</figure>
+
+<!------ Begin page ----------------------------------------------------------->
+
+<script>
+
+// ----- Initialize ------------------------------------------------------------
+
+let all_monitors = null;
+let selected_id = null;
+
+document.addEventListener('DOMContentLoaded', function () {
+  loadData(); 
+});
+
+// ----- Define functions ------------------------------------------------------
+
+// Load data and combine after all data are loaded
+loadData = async function() {
+  console.time('loadData');
+
+  // These temporary monitors are only for loading data
+  let airnow = new Monitor;
+  let airsis = new Monitor;
+  let wrcc = new Monitor;
+
+  // Block until data arrives.
+  await airnow.loadLatest('airnow');
+  await airsis.loadLatest('airsis');
+  await wrcc.loadLatest('wrcc');
+
+  // Combine after all data has been downlaoded
+  monitor = airnow.combine(airsis).combine(wrcc).dropEmpty();
+
+  console.timeEnd('loadData');
+}
+
+// 
+makePlot = function() {
+  monitor_timeseriesPlot('timeseries-plot', monitor, id = 1017);
+}
+
+debug = function() {
+  let a = 1;
+  a = 2;
+}
+</script>  
+
+</body>
+
+</html>
+
