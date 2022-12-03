@@ -1,4 +1,6 @@
 // Plotting functions for air-monitor data.
+]
+// TODO:  use stackedColumn to add the AQI stacked colors
 
 // https://github.com/pnwairfire/airfire-smoke-maps/blob/master/src/scripts/graphs.js
 
@@ -24,6 +26,8 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
       .array('locationName');
   }
 
+  let nowcast = data;
+
   const chart = Highcharts.chart(figureID, {
       chart: {
         animation: false
@@ -34,30 +38,65 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
         },
         scatter: {
           animation: false,
-          marker: { radius: 2.5, symbol: 'circle', fillColor: '#bbbbbb'}
+          marker: { radius: 3, symbol: 'circle', fillColor: '#bbbbbb'}
+        },
+        line: {
+          animation: false,
+          color: '#000000',
+          lineWidth: 1
+        },
+        spline: {
+          animation: false,
+          color: '#000000',
+          lineWidth: 1
         }
       },
       title: {
         text: title
       },
       xAxis: {
-        type: 'datetime'
+        type: 'datetime',
+        gridLineColor: '#cccccc',
+        gridLineDashStyle: 'Dash',
+        gridLineWidth: 1,
+        minorTicks: true,
+        minorTickInterval: 3 * 3600 * 1000, // every 3 hrs
+        minorGridLineColor: '#dddddd',
+        minorGridLineDashStyle: 'Dot',
+        minorGridLineWidth: 1
       },
       yAxis: {
         title: {
-          text: 'PM2.5 ug/m3'
-        }
+          text: 'PM2.5 ug/m3',
+        },
+        plotLines: [
+          // {color: '#ffff00', width: 2, value: 12},
+          {color: 'rgb(255,255,0)', width: 2, value: 12},
+          {color: 'rgb(255,126,0)', width: 2, value: 35.5},
+          {color: 'rgb(255,0,0)', width: 2, value: 55.5},
+          {color: 'rgb(143,63,151)', width: 2, value: 150.5},
+          {color: 'rgb(126,0,35)', width: 2, value: 250.5},
+        ]
       },
       legend: {
         enabled: false
       },
-      series: [{
+      series: [
+        {
           name: 'PM2.5',
           type: 'scatter',
           pointInterval: 3600 * 1000,
           pointStart: startTime.valueOf(),
           data: data
-      }]
+        },
+        {
+          name: 'Nowcast',
+          type: 'spline',
+          pointInterval: 3600 * 1000,
+          pointStart: startTime.valueOf(),
+          data: nowcast
+        }
+      ]
   });
 
 };
