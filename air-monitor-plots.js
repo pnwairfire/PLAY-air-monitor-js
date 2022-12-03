@@ -6,27 +6,44 @@
 
 function monitor_timeseriesPlot(figureID, monitor, id) {
 
-  id = Math.floor(Math.random() * monitor.meta.numRows());
-
-  let ids = monitor.meta.array('deviceDeploymentID');
+  let index = null;
+  let ids = monitor.getIDs();
 
   let startTime = monitor.data.array('datetime')[0];
   let data = null;
+  let nowcast = null;
   let title = null;
 
   if ( Number.isInteger(id) ) {
-    data = monitor.data.array(ids[id]);
-    title = monitor.meta.array('locationName')[id];
+    index = id;
+    id = ids[index];
   } else {
-    data = monitor.data.array(id);
-    title = 
-      monitor.meta
-      .params({id: id})
-      .filter((d, $) => d.deviceDeploymentID == $.id)
-      .array('locationName');
+    index = ids.indexOf(id);
   }
 
-  let nowcast = data;
+  title = monitor.meta.array('locationName')[index];
+
+  // Create a new table with NowCast values for this monitor
+  let dt = monitor.data
+    .select(['datetime', id])
+    .rename(aq.names('datetime', 'pm25'))
+    .derive({ nowcast: aq.rolling(d => op.average(d.pm25), [-2, 0]) })
+
+  data = dt.array('pm25');
+  nowcast = dt.array('nowcast');
+
+  // Default to well defined y-axis limits for visual stability
+  // See:  https://github.com/MazamaScience/AirMonitorPlots/blob/5482843e8e0ccfe1e30ccf21509d0df01fe45bca/R/custom_pm25TimeseriesScales.R#L103
+  let max_pm25 = dt.rollup({max: d => op.max(d.pm25)}).array('max')[0];
+  let ymin = 0;
+  let ymax = 
+    max_pm25 <= 50 ? 50 :
+    max_pm25 <= 100 ? 100 :
+    max_pm25 <= 200 ? 200 :
+    max_pm25 <= 400 ? 500 :
+    max_pm25 <= 600 ? 600 :
+    max_pm25 <= 1000 ? 1000 :
+    max_pm25 <= 1500 ? 1500 : 1.05 * max_pm25
 
   const chart = Highcharts.chart(figureID, {
       chart: {
@@ -66,6 +83,8 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
         minorGridLineWidth: 1
       },
       yAxis: {
+        min: ymin,
+        max: ymax,
         title: {
           text: 'PM2.5 ug/m3',
         },
@@ -91,7 +110,7 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
         },
         {
           name: 'Nowcast',
-          type: 'spline',
+          type: 'line',
           pointInterval: 3600 * 1000,
           pointStart: startTime.valueOf(),
           data: nowcast

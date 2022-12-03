@@ -6,6 +6,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Arquero Test</title>
   <link rel="icon" href="data:;base64,=">
+  <style>
+    /* 
+    #timeseries-plot {
+      width: 600px;
+      height: 400px;
+    }
+    */
+  </style>
 </head>
 
 <body>
@@ -23,15 +31,16 @@
 
 <!------ Begin page ----------------------------------------------------------->
 
-<button onclick="debug()">DEBUG</button>
-
-<button onclick="makePlot()">Plot</button>
+<div>
+  <button id="plot-button" disabled onclick="makePlot()">Plot random monitor</button>
+  <span id="status">Loading...</span>
+</div>
 
 <figure class="highcharts-figure">
-    <div id="timeseries-plot"></div>
+  <div id="timeseries-plot"></div>
 </figure>
 
-<!------ Begin page ----------------------------------------------------------->
+<!------ End page ------------------------------------------------------------->
 
 <script>
 
@@ -50,31 +59,32 @@ document.addEventListener('DOMContentLoaded', function () {
 loadData = async function() {
   console.time('loadData');
 
-  // These temporary monitors are only for loading data
-  let airnow = new Monitor;
-  let airsis = new Monitor;
-  let wrcc = new Monitor;
+  // These temporary objects are only for loading data
+  let m1 = new Monitor;
+  let m2 = new Monitor;
+  let m3 = new Monitor;
 
   // Block until data arrives.
-  await airnow.loadLatest('airnow');
-  await airsis.loadLatest('airsis');
-  await wrcc.loadLatest('wrcc');
+  await m1.loadLatest('airnow');
+  await m2.loadLatest('airsis');
+  await m3.loadLatest('wrcc');
 
   // Combine after all data has been downlaoded
-  monitor = airnow.combine(airsis).combine(wrcc).dropEmpty();
+  all_monitors = m1.combine(m2).combine(m3).dropEmpty();
+  
+  // Update the user interface
+  document.querySelector("#status").textContent = "Loaded " + all_monitors.count() + " monitors.";
+  document.querySelector("#plot-button").disabled = false;
 
   console.timeEnd('loadData');
 }
 
-// 
+// Create the plot
 makePlot = function() {
-  monitor_timeseriesPlot('timeseries-plot', monitor, id = 1017);
+  selected_id = all_monitors.meta.sample(1).get('deviceDeploymentID');
+  monitor_timeseriesPlot('timeseries-plot', all_monitors, selected_id);
 }
 
-debug = function() {
-  let a = 1;
-  a = 2;
-}
 </script>  
 
 </body>

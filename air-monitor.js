@@ -203,6 +203,24 @@ select(ids) {
 //  }
 
 
+  // ----- Utility methods -----------------------------------------------------
+
+  /**
+   * Returns an array of unique identifiers (deviceDeploymentIDs) found in a Monitor object
+   * @returns {Array} An array of deviceDeploymentIDs.
+   */
+   getIDs() {
+    return(this.meta.array('deviceDeploymentID'));
+  }
+
+  /**
+   * Returns the number of individual time series found in a Monitor object
+   * @returns {Int} Count of individual time series.
+   */
+   count() {
+    return(this.meta.numRows());
+  }
+
   // ----- Private methods -----------------------------------------------------
 
   /**
