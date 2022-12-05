@@ -202,6 +202,38 @@ select(ids) {
 
 //  }
 
+  // ----- Plot methods -----------------------------------------------------
+
+  timeseriesPlot(figureID, id) {
+
+    let index = null;
+    let ids = this.getIDs();
+
+    if ( Number.isInteger(id) ) {
+      index = id;
+      id = ids[index];
+    } else {
+      index = ids.indexOf(id);
+    }
+
+    // Create a new table with NowCast values for this monitor
+    let dt = this.data
+      .select(['datetime', id])
+      .rename(aq.names('datetime', 'pm25'))
+      .derive({ nowcast: aq.rolling(d => op.average(d.pm25), [-2, 0]) })
+
+    // NOTE:  Hightcharts will error out if any values are undefined. But null is OK.
+    let datetime = dt.array('datetime');
+    let pm25 = dt.array('pm25').map(x => x === undefined ? null : Math.round(10 * x) / 10);
+    let nowcast = dt.array('nowcast').map(x => x === undefined ? null : Math.round(10 * x) / 10);
+    let title = this.meta.array('locationName')[index];
+    let xAxis_title = "Time (" + this.meta.array('timezone')[index] + ")";
+
+    const chart = pm25_timeseriesPlot(figureID, datetime, pm25, nowcast, title, xAxis_title);
+    
+    addAQIStackedBar(chart);
+
+  };
 
   // ----- Utility methods -----------------------------------------------------
 

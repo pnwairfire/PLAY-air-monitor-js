@@ -27,7 +27,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/arquero@latest"></script>
 <script src="./air-monitor.js"></script>
-<script src="./air-monitor-plots.js"></script>
+<script src="./air-quality-plots.js"></script>
 
 <!------ Begin page ----------------------------------------------------------->
 
@@ -83,7 +83,8 @@ loadData = async function() {
 makePlot = function() {
   // Pick a random id
   selected_id = all_monitors.meta.sample(1).get('deviceDeploymentID');
-  monitor_timeseriesPlot('timeseries-plot', all_monitors, selected_id);
+  //monitor_timeseriesPlot('timeseries-plot', all_monitors, selected_id);
+  all_monitors.timeseriesPlot('timeseries-plot', selected_id);
 }
 
 </script>  
