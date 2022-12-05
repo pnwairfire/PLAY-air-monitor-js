@@ -226,7 +226,8 @@ select(ids) {
     let datetime = dt.array('datetime');
     let pm25 = dt.array('pm25').map(x => x === undefined ? null : Math.round(10 * x) / 10);
     let nowcast = dt.array('nowcast').map(x => x === undefined ? null : Math.round(10 * x) / 10);
-    let title = this.meta.array('locationName')[index];
+    let locationName = this.meta.array('locationName')[index];
+    let title = "Hourly PM2.5 Values and Nowcast<br/>Site: " + locationName;
     let xAxis_title = "Time (" + this.meta.array('timezone')[index] + ")";
 
     const chart = pm25_timeseriesPlot(figureID, datetime, pm25, nowcast, title, xAxis_title);
