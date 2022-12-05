@@ -89,7 +89,6 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
           text: 'PM2.5 ug/m3',
         },
         plotLines: [
-          // {color: '#ffff00', width: 2, value: 12},
           {color: 'rgb(255,255,0)', width: 2, value: 12},
           {color: 'rgb(255,126,0)', width: 2, value: 35.5},
           {color: 'rgb(255,0,0)', width: 2, value: 55.5},
@@ -118,7 +117,62 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
       ]
   });
 
+  addAQIStackedBar(chart);
+
 };
+
+function addAQIStackedBar(chart) {
+
+ // NOTE:  0, 0 is at the top left of the graphic with y increasing downward
+
+  let xmin = chart.xAxis[0].min;
+  let ymin = chart.yAxis[0].min;
+  let ymax = chart.yAxis[0].max;
+  let ymax_px = chart.yAxis[0].toPixels(ymax);
+
+  let xhi = chart.xAxis[0].toPixels(xmin);
+  let xlo = xhi - 8;
+  let width = Math.abs(xhi - xlo);
+
+  // Green
+  let yhi = chart.yAxis[0].toPixels(0);
+  let ylo = Math.max(chart.yAxis[0].toPixels(12), ymax_px);
+  let height = Math.abs(yhi - ylo);
+  chart.renderer.rect(xlo, ylo, width, height, 1).attr({fill: 'rgb(0,255,0)', stroke: 'transparent'}).add();
+  
+  // Yellow
+  yhi = chart.yAxis[0].toPixels(12);
+  if ( yhi > ymax_px ) {
+    ylo = Math.max(chart.yAxis[0].toPixels(35.5), ymax_px);
+    height = Math.abs(yhi - ylo);
+    chart.renderer.rect(xlo, ylo, width, height, 1).attr({fill: 'rgb(255,255,0)', stroke: 'transparent'}).add();
+  }
+  
+  // Orange
+  yhi = chart.yAxis[0].toPixels(35.5);
+  if ( yhi > ymax_px ) {
+    ylo = Math.max(chart.yAxis[0].toPixels(55.5), ymax_px);
+    height = Math.abs(yhi - ylo);
+    chart.renderer.rect(xlo, ylo, width, height, 1).attr({fill: 'rgb(255,126,0)', stroke: 'transparent'}).add();
+  }
+  
+  // Red
+  yhi = chart.yAxis[0].toPixels(55.5);
+  if ( yhi > ymax_px ) {
+    ylo = Math.max(chart.yAxis[0].toPixels(105.5), ymax_px);
+    height = Math.abs(yhi - ylo);
+    chart.renderer.rect(xlo, ylo, width, height, 1).attr({fill: 'rgb(143,63,151)', stroke: 'transparent'}).add();
+  }
+  
+  // Purple
+  yhi = chart.yAxis[0].toPixels(105.5);
+  if ( yhi > ymax_px ) {
+    ylo = Math.max(chart.yAxis[0].toPixels(250), ymax_px);
+    height = Math.abs(yhi - ylo);
+    chart.renderer.rect(xlo, ylo, width, height, 1).attr({fill: 'rgb(126,0,35)', stroke: 'transparent'}).add(); 
+  }
+  
+}
 
 // -----------------------------------------------------------------------------
 
