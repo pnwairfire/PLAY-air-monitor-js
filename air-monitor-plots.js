@@ -9,12 +9,6 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
   let index = null;
   let ids = monitor.getIDs();
 
-  let startTime = monitor.data.array('datetime')[0];
-  let data = null;
-  let nowcast = null;
-  let title = null;
-  let xAxis_title = null;
-
   if ( Number.isInteger(id) ) {
     index = id;
     id = ids[index];
@@ -22,8 +16,8 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
     index = ids.indexOf(id);
   }
 
-  title = monitor.meta.array('locationName')[index];
-  xAxis_title = "Time (" + monitor.meta.array('timezone')[index] + ")";
+  let title = monitor.meta.array('locationName')[index];
+  let xAxis_title = "Time (" + monitor.meta.array('timezone')[index] + ")";
 
   // Create a new table with NowCast values for this monitor
   let dt = monitor.data
@@ -31,14 +25,15 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
     .rename(aq.names('datetime', 'pm25'))
     .derive({ nowcast: aq.rolling(d => op.average(d.pm25), [-2, 0]) })
 
-  data = dt.array('pm25');
   // NOTE:  Hightcharts will error out if any values are undefined. But null is OK.
-  nowcast = dt.array('nowcast').map(x => x === undefined ? null : x);
-  nowcast = nowcast.map(x => Math.round(10 * x) / 10);
+  let datetime = dt.array('datetime');
+  let startTime = datetime[0];
+  let pm25 = dt.array('pm25').map(x => x === undefined ? null : Math.round(10 * x) / 10);
+  let nowcast = dt.array('nowcast').map(x => x === undefined ? null : Math.round(10 * x) / 10);
 
   // Default to well defined y-axis limits for visual stability
   // See:  https://github.com/MazamaScience/AirMonitorPlots/blob/5482843e8e0ccfe1e30ccf21509d0df01fe45bca/R/custom_pm25TimeseriesScales.R#L103
-  let max_pm25 = dt.rollup({max: d => op.max(d.pm25)}).array('max')[0];
+  let max_pm25 = Math.max(...pm25);
   let ymin = 0;
   let ymax = 
     max_pm25 <= 50 ? 50 :
@@ -111,7 +106,7 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
           type: 'scatter',
           pointInterval: 3600 * 1000,
           pointStart: startTime.valueOf(),
-          data: data
+          data: pm25
         },
         {
           name: 'Nowcast',
