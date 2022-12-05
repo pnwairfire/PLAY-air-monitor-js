@@ -13,6 +13,7 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
   let data = null;
   let nowcast = null;
   let title = null;
+  let xAxis_title = null;
 
   if ( Number.isInteger(id) ) {
     index = id;
@@ -22,6 +23,7 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
   }
 
   title = monitor.meta.array('locationName')[index];
+  xAxis_title = "Time (" + monitor.meta.array('timezone')[index] + ")";
 
   // Create a new table with NowCast values for this monitor
   let dt = monitor.data
@@ -71,6 +73,7 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
       },
       xAxis: {
         type: 'datetime',
+        title: {margin: 20, style: { "color": "#333333", "fontSize": "16px" }, text: xAxis_title},
         gridLineColor: '#cccccc',
         gridLineDashStyle: 'Dash',
         gridLineWidth: 1,
@@ -87,9 +90,10 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
         gridLineDashStyle: 'Dash',
         gridLineWidth: 1,
         title: {
-          text: 'PM2.5 ug/m3',
+          text: 'PM2.5 (\u00b5g/m\u00b3)',
         },
         plotLines: [
+          // AQI lines
           {color: 'rgb(255,255,0)', width: 2, value: 12},
           {color: 'rgb(255,126,0)', width: 2, value: 35.5},
           {color: 'rgb(255,0,0)', width: 2, value: 55.5},
@@ -103,7 +107,7 @@ function monitor_timeseriesPlot(figureID, monitor, id) {
       },
       series: [
         {
-          name: 'PM2.5',
+          name: 'Hourly PM2.5 Values',
           type: 'scatter',
           pointInterval: 3600 * 1000,
           pointStart: startTime.valueOf(),

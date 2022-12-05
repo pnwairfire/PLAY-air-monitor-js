@@ -81,6 +81,7 @@ loadData = async function() {
 
 // Create the plot
 makePlot = function() {
+  // Pick a random id
   selected_id = all_monitors.meta.sample(1).get('deviceDeploymentID');
   monitor_timeseriesPlot('timeseries-plot', all_monitors, selected_id);
 }
