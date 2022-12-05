@@ -7,11 +7,13 @@ function pm25_timeseriesPlot(
   datetime,
   pm25,
   nowcast,
-  title,
-  xAxis_title
+  locationName,
+  timezone
 ) {
  
   let startTime = datetime[0];
+  let title = "Hourly PM2.5 Values and Nowcast<br/>Site: " + locationName;
+  let xAxis_title = "Time (" + timezone + ")";
 
   // Default to well defined y-axis limits for visual stability
   // See:  https://github.com/MazamaScience/AirMonitorPlots/blob/5482843e8e0ccfe1e30ccf21509d0df01fe45bca/R/custom_pm25TimeseriesScales.R#L103
@@ -47,6 +49,9 @@ function pm25_timeseriesPlot(
     },
     title: {
       text: title
+    },
+    time: {
+      timezone: timezone
     },
     xAxis: {
       type: 'datetime',
