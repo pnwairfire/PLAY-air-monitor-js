@@ -80,7 +80,7 @@ loadData = async function() {
   await m3.loadLatest('wrcc');
 
   // Combine after all data has been downlaoded
-  all_monitors = m1.combine(m2).combine(m3).dropEmpty();
+  all_monitors = m1.combine(m2).combine(m3).dropEmpty(); 
   
   // Update the user interface
   document.querySelector("#status").textContent = "Loaded " + all_monitors.count() + " monitors.";
@@ -93,7 +93,7 @@ loadData = async function() {
 makePlot = function() {
   // Pick a random id
   selected_id = all_monitors.meta.sample(1).get('deviceDeploymentID');
-  //all_monitors.timeseriesPlot('timeseries-plot', selected_id);
+  // all_monitors.timeseriesPlot('timeseries-plot', selected_id);
   all_monitors.dailyBarplot('timeseries-plot', selected_id);
 }
 

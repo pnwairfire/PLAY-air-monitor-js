@@ -155,25 +155,31 @@
     max_pm25 <= 1000 ? 1000 :
     max_pm25 <= 1500 ? 1500 : 1.05 * max_pm25
 
-  const chart = Highcharts.chart(figureID, {
+  // Crreate colored series data
+  // See:  https://stackoverflow.com/questions/35854947/how-do-i-change-a-specific-bar-color-in-highcharts-bar-chart
+  let seriesData = [];
+  for ( let i = 0; i < daily_avg_pm25.length; i++ ) {
+    seriesData[i] = {y: daily_avg_pm25[i], color: pm25ToColor(daily_avg_pm25[i])};
+  } 
 
+  let days = daily_datetime.map(x => moment.tz(x, timezone).format("MMM DD"));
+
+  const chart = Highcharts.chart(figureID, {
     chart: {
-        type: 'column',
-        animation: false
+    },
+    plotOptions: {
+      column: {
+        animation: false,
+        allowPointSelect: true,
+        borderColor: '#666666'
+      }
     },
     title: {
       text: title
     },
-    time: {
-      timezone: timezone
-    },
     xAxis: {
-      //type: 'datetime',
-      categories: daily_datetime,
-      title: {margin: 20, style: { "color": "#333333", "fontSize": "16px" }, text: xAxis_title},
-      // gridLineColor: '#cccccc',
-      // gridLineDashStyle: 'Dash',
-      // gridLineWidth: 1
+      categories: days,
+      title: {margin: 20, style: { "color": "#333333", "fontSize": "16px" }, text: xAxis_title}
     },
     yAxis: {
       min: ymin,
@@ -193,13 +199,13 @@
         {color: 'rgb(126,0,35)', width: 2, value: 250.5},
       ]
     },
-    plotOptions: {
-        series: {
-            allowPointSelect: true
-        }
+    legend: {
+      enabled: false
     },
     series: [{
-        data: daily_avg_pm25
+      name: 'Daily Avg PM2.5',
+      type: 'column',
+      data: seriesData
     }]  
 
   });
@@ -223,9 +229,10 @@ function addAQIStackedBar(chart) {
   let ymax = chart.yAxis[0].max;
   let ymax_px = chart.yAxis[0].toPixels(ymax);
 
-  let xhi = chart.xAxis[0].toPixels(xmin);
-  let xlo = xhi - 8;
+  let xlo = chart.xAxis[0].left; // leftmost pixel of the plot area
+  let xhi = xlo + 8;
   let width = Math.abs(xhi - xlo);
+
 
   // Green
   let yhi = chart.yAxis[0].toPixels(0);
@@ -265,6 +272,32 @@ function addAQIStackedBar(chart) {
     chart.renderer.rect(xlo, ylo, width, height, 1).attr({fill: 'rgb(143,63,151)', stroke: 'transparent'}).add(); 
   }
   
+  // Maroon
+  yhi = chart.yAxis[0].toPixels(250);
+  if ( yhi > ymax_px ) {
+    ylo = Math.max(chart.yAxis[0].toPixels(5000), ymax_px);
+    height = Math.abs(yhi - ylo);
+    chart.renderer.rect(xlo, ylo, width, height, 1).attr({fill: 'rgb(126,0,35)', stroke: 'transparent'}).add(); 
+  }
+  
 }
 
+/**
+ * Return the AQI color associated with a PM2.5 level.
+ * @param {Number} pm25 PM2.5 value in ug/m3.
+ */
+function pm25ToColor(pm25) {
+
+  let color = 
+    pm25 <= 12 ? 'rgb(0,255,0)' : 
+    pm25 <= 35.5 ? 'rgb(255,255,0)' : 
+    pm25 <= 55.5 ? 'rgb(255,126,0)' : 
+    pm25 <= 105.5 ? 'rgb(255,0,0)' : 
+    pm25 <= 250 ? 'rgb(143,63,151)' : 'rgb(126,0,35)';
+
+  return(color);
+
+}
+
+let AQI_colors = ['rgb(0,255,0)', 'rgb(255,255,0)', 'rgb(255,126,0)', 'rgb(255,0,0)', 'rgb(143,63,151)', 'rgb(126,0,35)'];
 
