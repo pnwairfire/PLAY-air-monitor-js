@@ -2,6 +2,8 @@
 
 // https://github.com/pnwairfire/airfire-smoke-maps/blob/master/src/scripts/graphs.js
 
+// ----- Timeseries Plot -------------------------------------------------------
+
 /**
  * Creates a "USFS AirFire standard" time series plot of hourly PM2.5 and Nowcast data.
  * 
@@ -121,6 +123,8 @@
 
 }
 
+// ----- Daily Barplot ---------------------------------------------------------
+
 /**
  * Creates a "USFS AirFire standard" daily barplot of PM2.5 data.
  * 
@@ -140,7 +144,6 @@
 ) {
 
   let title = "Daily Average PM2.5<br/>Site: " + locationName;
-  let xAxis_title = "Time (" + timezone + ")";
 
   // Default to well defined y-axis limits for visual stability
   // See:  https://github.com/MazamaScience/AirMonitorPlots/blob/5482843e8e0ccfe1e30ccf21509d0df01fe45bca/R/custom_pm25TimeseriesScales.R#L103
@@ -179,7 +182,6 @@
     },
     xAxis: {
       categories: days,
-      title: {margin: 20, style: { "color": "#333333", "fontSize": "16px" }, text: xAxis_title}
     },
     yAxis: {
       min: ymin,
