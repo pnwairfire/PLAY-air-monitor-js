@@ -25,6 +25,12 @@
 <script src="https://code.highcharts.com/modules/export-data.js"></script>
 <script src="https://code.highcharts.com/modules/accessibility.js"></script>
 
+<!--
+  *            moment: required by Highcharts to properly display local times
+  *           arquero: required by air-monitor.js
+  *       air-monitor: defines the Monitor class
+  * air-quality-plots: Highcharts plotting functions
+-->
 <script src="./moment.min.js"></script>
 <script src="./moment-timezone-with-data-1970-2030.min.js"></script>
 
@@ -87,8 +93,8 @@ loadData = async function() {
 makePlot = function() {
   // Pick a random id
   selected_id = all_monitors.meta.sample(1).get('deviceDeploymentID');
-  //monitor_timeseriesPlot('timeseries-plot', all_monitors, selected_id);
-  all_monitors.timeseriesPlot('timeseries-plot', selected_id);
+  //all_monitors.timeseriesPlot('timeseries-plot', selected_id);
+  all_monitors.dailyBarplot('timeseries-plot', selected_id);
 }
 
 </script>  

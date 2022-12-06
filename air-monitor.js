@@ -1,4 +1,7 @@
-// https://uwdata.github.io/arquero/
+// Requires:
+//  * https://uwdata.github.io/arquero/
+//  * https://momentjs.com
+//  * https://momentjs.com/timezone/
 
 class Monitor {
 
@@ -22,7 +25,7 @@ class Monitor {
    * This function replaces the 'meta' and 'data' properties of the 
    * 'monitorObj' with the latest available data. Data are updated every few minutes.
    * @param {String} provider One of "airnow|airsis|wrcc".
-   * @archiveBaseUrl {String} Base URL for monitoring v2 data files.
+   * @param {String} archiveBaseUrlBase URL for monitoring v2 data files.
    */
    async loadLatest(
     provider = null,
@@ -127,14 +130,14 @@ select(ids) {
 
     // -----
     
-    var meta = this.meta;
-    var data = this.data;
+    let meta = this.meta;
+    let data = this.data;
 
     // Single row table with the count of valid values 
-    var countObj = validCount(data).object(0);
+    let countObj = validCount(data).object(0);
     // {a: 4, b: 4, c: 0}
 
-    var ids = [];
+    let ids = [];
     for (const [key, value] of Object.entries(countObj)) {
       if ( value > 0 ) ids.push(key);
     }
@@ -150,6 +153,29 @@ select(ids) {
     let return_monitor = new Monitor(meta, data);
     return(return_monitor);
 
+  }
+
+  /**
+   * Returns a modified Monitor object with the records trimmed to full
+   * local time days. Any partial days are discarded.
+   * @note This function requires moment.js.
+   * @param {String} timezone Olsen timezone for the time series
+   */
+  trimDate(timezone) {
+    // Calculate local time hours and start/end
+    let localTime = this.data.array('datetime').map(x => moment.tz(x, timezone));
+    let hours = localTime.map(x => x.hours());
+    let start = hours[0] == 0 ? 0 : 24 - hours[0];
+    let end = hours[hours.length - 1] == 23 ? hours.length - 1 : hours.length - hours[hours.length - 1] - 1;
+
+    // https://uwdata.github.io/arquero/api/verbs#slice
+    // Subset data and meta
+    let data = this.data.slice(start, end);
+    let meta = this.meta;
+
+    // Return
+    let return_monitor = new Monitor(meta, data);
+    return(return_monitor);
   }
 
 
@@ -216,6 +242,9 @@ select(ids) {
       index = ids.indexOf(id);
     }
 
+    let locationName = this.meta.array('locationName')[index];
+    let timezone = this.meta.array('timezone')[index];
+
     // Create a new table with NowCast values for this monitor
     let dt = this.data
       .select(['datetime', id])
@@ -226,14 +255,58 @@ select(ids) {
     let datetime = dt.array('datetime');
     let pm25 = dt.array('pm25').map(x => x === undefined ? null : Math.round(10 * x) / 10);
     let nowcast = dt.array('nowcast').map(x => x === undefined ? null : Math.round(10 * x) / 10);
-    let locationName = this.meta.array('locationName')[index];
-    let timezone = this.meta.array('timezone')[index];
 
     const chart = pm25_timeseriesPlot(figureID, datetime, pm25, nowcast, locationName, timezone);
     
     addAQIStackedBar(chart);
 
   };
+
+  dailyBarplot(figureID, id) {
+
+    let index = null;
+    let ids = this.getIDs();
+
+    if ( Number.isInteger(id) ) {
+      index = id;
+      id = ids[index];
+    } else {
+      index = ids.indexOf(id);
+    }
+
+    let locationName = this.meta.array('locationName')[index];
+    let timezone = this.meta.array('timezone')[index];
+
+    // Create a new table with 24-rolling average values for this monitor
+    // NOTE:  start by trimming to full days in the local timezone
+    let dt = this.trimDate(timezone).data
+      .select(['datetime', id])
+      .rename(aq.names('datetime', 'pm25'))
+      .derive({ avg_24hr: aq.rolling(d => op.average(d.pm25), [-23, 0]) })
+
+    // NOTE:  Hightcharts will error out if any values are undefined. But null is OK.
+    let datetime = dt.array('datetime');
+    let pm25 = dt.array('pm25').map(x => x === undefined ? null : Math.round(10 * x) / 10);
+    let avg_24hr = dt.array('avg_24hr').map(x => x === undefined ? null : Math.round(10 * x) / 10);
+
+    let dayCount = avg_24hr.length / 24;
+    let time_indices = [];
+    let avg_indices = [];
+    for (let i = 0; i < dayCount; i++) { 
+      time_indices[i] = 24 * i;     // avg assigned to beginning of day
+      avg_indices[i] = 24 * i + 23; // avg calculated at end of day
+    }
+
+    let daily_datetime = time_indices.map(x => datetime[x]);
+    let daily_avg_pm25 = avg_indices.map(x => avg_24hr[x]);
+
+    const chart = pm25_dailyBarplot(figureID, daily_datetime, daily_avg_pm25, locationName, timezone);
+    
+    addAQIStackedBar(chart);
+
+  };
+
+  
 
   // ----- Utility methods -----------------------------------------------------
 
