@@ -98,7 +98,7 @@ class Monitor {
    * @param {...String} ids deviceDeploymentIDs of the time series to select.
    * @returns {Monitor} A reordered (subset) of the incoming monitor object.
    */
-select(ids) {
+  select(ids) {
 
     let meta = this.meta
       .params({ids: ids})
@@ -162,6 +162,7 @@ select(ids) {
    * @param {String} timezone Olsen timezone for the time series
    */
   trimDate(timezone) {
+
     // Calculate local time hours and start/end
     let localTime = this.data.array('datetime').map(x => moment.tz(x, timezone));
     let hours = localTime.map(x => x.hours());
@@ -176,6 +177,7 @@ select(ids) {
     // Return
     let return_monitor = new Monitor(meta, data);
     return(return_monitor);
+    
   }
 
 
@@ -278,7 +280,7 @@ select(ids) {
     let timezone = this.meta.array('timezone')[index];
 
     // Create a new table with 24-rolling average values for this monitor
-    // NOTE:  start by trimming to full days in the local timezone
+    // NOTE:  tart by trimming to full days in the local timezone
     let dt = this.trimDate(timezone).data
       .select(['datetime', id])
       .rename(aq.names('datetime', 'pm25'))

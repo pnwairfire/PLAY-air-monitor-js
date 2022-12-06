@@ -171,9 +171,9 @@
       //type: 'datetime',
       categories: daily_datetime,
       title: {margin: 20, style: { "color": "#333333", "fontSize": "16px" }, text: xAxis_title},
-      gridLineColor: '#cccccc',
-      gridLineDashStyle: 'Dash',
-      gridLineWidth: 1
+      // gridLineColor: '#cccccc',
+      // gridLineDashStyle: 'Dash',
+      // gridLineWidth: 1
     },
     yAxis: {
       min: ymin,
