@@ -38,6 +38,7 @@
 
 <script src="./air-monitor.js"></script>
 <script src="./air-quality-plots.js"></script>
+<script src="./air-monitor-plotFunctions.js"></script>
 
 <!------ Begin page ----------------------------------------------------------->
 
@@ -47,10 +48,10 @@
 </div>
 
 <figure class="highcharts-figure">
-  <div id="timeseries-plot"></div>
+  <div id="plot1"></div>
 </figure>
 <figure class="highcharts-figure">
-  <div id="daily-barplot"></div>
+  <div id="plot2"></div>
 </figure>
 
 <!------ End page ------------------------------------------------------------->
@@ -96,9 +97,11 @@ loadData = async function() {
 makePlot = function() {
   // Pick a random id
   selected_id = all_monitors.meta.sample(1).get('deviceDeploymentID');
-  // all_monitors.timeseriesPlot('timeseries-plot', selected_id);
-  // all_monitors.dailyBarplot('daily-barplot', selected_id);
-  all_monitors.diurnalPlot('timeseries-plot', selected_id);
+  timeseriesPlot('plot1', all_monitors, selected_id);
+  dailyBarplot('plot2', all_monitors, selected_id);
+  // all_monitors.timeseriesPlot(plot1, selected_id);
+//   all_monitors.dailyBarplot('daily-barplot', selected_id);
+//   all_monitors.diurnalPlot('timeseries-plot', selected_id);
 }
 
 </script>  
