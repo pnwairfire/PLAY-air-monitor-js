@@ -96,8 +96,9 @@ loadData = async function() {
 makePlot = function() {
   // Pick a random id
   selected_id = all_monitors.meta.sample(1).get('deviceDeploymentID');
-  all_monitors.timeseriesPlot('timeseries-plot', selected_id);
-  all_monitors.dailyBarplot('daily-barplot', selected_id);
+  // all_monitors.timeseriesPlot('timeseries-plot', selected_id);
+  // all_monitors.dailyBarplot('daily-barplot', selected_id);
+  all_monitors.diurnalPlot('timeseries-plot', selected_id);
 }
 
 </script>  

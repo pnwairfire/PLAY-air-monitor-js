@@ -280,7 +280,7 @@ class Monitor {
     let timezone = this.meta.array('timezone')[index];
 
     // Create a new table with 24-rolling average values for this monitor
-    // NOTE:  tart by trimming to full days in the local timezone
+    // NOTE:  Start by trimming to full days in the local timezone
     let dt = this.trimDate(timezone).data
       .select(['datetime', id])
       .rename(aq.names('datetime', 'pm25'))
@@ -306,9 +306,53 @@ class Monitor {
     
     addAQIStackedBar(chart);
 
-  };
+  }; 
 
-  
+  diurnalPlot(figureID, id) {
+
+    let index = null;
+    let ids = this.getIDs();
+
+    if ( Number.isInteger(id) ) {
+      index = id;
+      id = ids[index];
+    } else {
+      index = ids.indexOf(id);
+    }
+
+    let locationName = this.meta.array('locationName')[index];
+    let timezone = this.meta.array('timezone')[index];
+
+    // Pull out the yesterday and today hourly timeseries
+    let dt = this.data
+    .select(['datetime', id])
+    .rename(aq.names('datetime', 'pm25'))
+    .derive({hour: d => op.hours(d.datetime)})
+
+    let yd_hour = dt.array('hour');
+    let yd = dt.array('pm25').map(x => x === undefined ? null : Math.round(10 * x) / 10);
+
+    // Create the average by hour data table
+    // NOTE:  Start by trimming to full days in the local timezone
+    let dt_mean = this.trimDate(timezone).data
+      .select(['datetime', id])
+      .rename(aq.names('datetime', 'pm25'))
+      .derive({hour: d => op.hours(d.datetime)})
+      .groupby('hour').rollup({mean: aq.op.mean('pm25')})
+      // Can't add orderby() here because it returns the original array, not the ordered one
+
+    dt_mean = dt_mean.orderby('hour');
+
+    // NOTE:  Hightcharts will error out if any values are undefined. But null is OK.
+    let hour = dt_mean.array('hour');
+    let hour_mean = dt_mean.array('mean').map(x => x === undefined ? null : Math.round(10 * x) / 10);
+
+    let dummy = 1;
+    // const chart = pm25_dailyByHourPlot(figureID, datetime, pm25, nowcast, locationName, timezone);
+    
+    // addAQIStackedBar(chart);
+
+  };
 
   // ----- Utility methods -----------------------------------------------------
 
@@ -327,6 +371,30 @@ class Monitor {
    count() {
     return(this.meta.numRows());
   }
+
+
+  // ----- Constants -----------------------------------------------------------
+
+  coreMetadataNames = [
+    "deviceDeploymentID",
+    "deviceID",
+    "deviceType",
+    "deviceDescription",
+    "pollutant",         
+    "units",
+    "dataIngestSource",
+    "locationID",
+    "locationName",
+    "longitude",
+    "latitude",
+    "elevation",
+    "countryCode",         
+    "stateCode",
+    "countyName",
+    "timezone",
+    "AQSID",
+    "fullAQSID", 
+  ];
 
   // ----- Private methods -----------------------------------------------------
 
@@ -378,29 +446,5 @@ class Monitor {
     // Return the modified data table
     return(dt.derive(values1).derive(values2));
   }
-
-  // ----- Constants -----------------------------------------------------------
-
-  coreMetadataNames = [
-    "deviceDeploymentID",
-    "deviceID",
-    "deviceType",
-    "deviceDescription",
-    "pollutant",         
-    "units",
-    "dataIngestSource",
-    "locationID",
-    "locationName",
-    "longitude",
-    "latitude",
-    "elevation",
-    "countryCode",         
-    "stateCode",
-    "countyName",
-    "timezone",
-    "AQSID",
-    "fullAQSID", 
-  ];
-
 
 }
