@@ -47,12 +47,21 @@
   <span id="status">Loading...</span>
 </div>
 
-<figure class="highcharts-figure">
+<!-- <figure class="highcharts-figure">
   <div id="plot1"></div>
 </figure>
 <figure class="highcharts-figure">
   <div id="plot2"></div>
 </figure>
+<figure class="highcharts-figure">
+  <div id="plot3"></div>
+</figure> -->
+
+<div idi="plot-row">
+  <div id="plot1"></div>
+  <div id="plot2"></div>
+  <div id="plot3"></div>
+</div>
 
 <!------ End page ------------------------------------------------------------->
 
@@ -99,9 +108,7 @@ makePlot = function() {
   selected_id = all_monitors.meta.sample(1).get('deviceDeploymentID');
   timeseriesPlot('plot1', all_monitors, selected_id);
   dailyBarplot('plot2', all_monitors, selected_id);
-  // all_monitors.timeseriesPlot(plot1, selected_id);
-//   all_monitors.dailyBarplot('daily-barplot', selected_id);
-//   all_monitors.diurnalPlot('timeseries-plot', selected_id);
+  diurnalPlot('plot3', all_monitors, selected_id);
 }
 
 </script>  

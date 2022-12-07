@@ -5,6 +5,8 @@
 //  * https://momentjs.com
 //  * https://momentjs.com/timezone/
 
+// See also: https://github.com/pnwairfire/airfire-smoke-maps/blob/master/src/scripts/graphs.js
+
 
 class AirQualityPlot {
 
@@ -37,15 +39,12 @@ class AirQualityPlot {
     locationName,
     timezone
   ) {
-
-    // https://github.com/pnwairfire/airfire-smoke-maps/blob/master/src/scripts/graphs.js
   
     let startTime = datetime[0];
     let title = "Hourly PM2.5 Values and Nowcast<br/>Site: " + locationName;
     let xAxis_title = "Time (" + timezone + ")";
 
     // Default to well defined y-axis limits for visual stability
-    // See:  https://github.com/MazamaScience/AirMonitorPlots/blob/5482843e8e0ccfe1e30ccf21509d0df01fe45bca/R/custom_pm25TimeseriesScales.R#L103
     let ymin = 0;
     let ymax = this.pm25ToYMax(Math.max(...pm25));
 
@@ -63,7 +62,7 @@ class AirQualityPlot {
         },
         line: {
           animation: false,
-          color: '#000000',
+          color: '#000',
           lineWidth: 1,
           marker: { radius: 1, symbol: 'square', fillColor: 'transparent'}
         }
@@ -76,26 +75,26 @@ class AirQualityPlot {
       },
       xAxis: {
         type: 'datetime',
-        title: {margin: 20, style: { "color": "#333333", "fontSize": "16px" }, text: xAxis_title},
-        gridLineColor: '#cccccc',
+        title: {margin: 20, style: { "color": "#333", "fontSize": "16px" }, text: xAxis_title},
+        gridLineColor: '#ddd',
         gridLineDashStyle: 'Dash',
         gridLineWidth: 1,
         minorTicks: true,
         minorTickInterval: 3 * 3600 * 1000, // every 3 hrs
-        minorGridLineColor: '#dddddd',
+        minorGridLineColor: '#eee',
         minorGridLineDashStyle: 'Dot',
         minorGridLineWidth: 1
       },
       yAxis: {
         min: ymin,
         max: ymax,
-        gridLineColor: '#cccccc',
+        gridLineColor: '#ddd',
         gridLineDashStyle: 'Dash',
         gridLineWidth: 1,
         title: {
           text: 'PM2.5 (\u00b5g/m\u00b3)',
         },
-        plotLines: this.AQI_pm25_lines
+        plotLines: this.AQI_pm25_lines // horizontal colored lines
       },
       legend: {
         enabled: true,
@@ -147,7 +146,6 @@ class AirQualityPlot {
     let title = "Daily Average PM2.5<br/>Site: " + locationName;
 
     // Default to well defined y-axis limits for visual stability
-    // See:  https://github.com/MazamaScience/AirMonitorPlots/blob/5482843e8e0ccfe1e30ccf21509d0df01fe45bca/R/custom_pm25TimeseriesScales.R#L103
     let ymin = 0;
     let ymax = this.pm25ToYMax(Math.max(...daily_avg_pm25));
 
@@ -167,7 +165,7 @@ class AirQualityPlot {
         column: {
           animation: false,
           allowPointSelect: true,
-          borderColor: '#666666'
+          borderColor: '#666'
         }
       },
       title: {
@@ -179,13 +177,13 @@ class AirQualityPlot {
       yAxis: {
         min: ymin,
         max: ymax,
-        gridLineColor: '#cccccc',
+        gridLineColor: '#ddd',
         gridLineDashStyle: 'Dash',
         gridLineWidth: 1,
         title: {
           text: 'PM2.5 (\u00b5g/m\u00b3)',
         },
-        plotLines: this.AQI_pm25_lines
+        plotLines: this.AQI_pm25_lines // horizontal colored lines
       },
       legend: {
         enabled: false
@@ -195,6 +193,124 @@ class AirQualityPlot {
         type: 'column',
         data: seriesData
       }]  
+
+    });
+
+    return(chart);
+
+  };
+
+  // ----- Diurnal Plot --------------------------------------------------------
+
+  /**
+   * Creates a "USFS AirFire standard" diurnal plot of PM2.5 data.
+   * 
+   * @param {String} figureID CSS identifier for the DOM element where the chart will appear.
+   * @param {Array} hour Hours (0-23).
+   * @param {Array} hour_mean Average pm25 at for a specific hour.
+   * @param {Array} yesterday Yesterday pm25 values.
+   * @param {Array} hour_mean Today pm25 values.
+   * @param {String} locationName Human readable location name.
+   * @param {String} timezone Olsen timezone.
+   * @returns 
+   */
+   pm25_diurnalPlot(
+    figureID,
+    hour,
+    hour_mean,
+    yesterday,
+    today,
+    locationName,
+    timezone
+  ) {
+
+    let title = "Nowcast by Time of Day<br/>Site: " + locationName;
+
+    // Default to well defined y-axis limits for visual stability
+    let ymin = 0;
+    let ymax = this.pm25ToYMax(Math.max(...yesterday, ...today));
+
+    // Crreate colored series data
+    // See:  https://stackoverflow.com/questions/35854947/how-do-i-change-a-specific-bar-color-in-highcharts-bar-chart
+    let yesterdayData = [];
+    for ( let i = 0; i < yesterday.length; i++ ) {
+      yesterdayData[i] = {y: yesterday[i], color: this.pm25ToColor(yesterday[i])};
+    } 
+    let todayData = [];
+    for ( let i = 0; i < today.length; i++ ) {
+      todayData[i] = {y: today[i], color: this.pm25ToColor(today[i])};
+    } 
+
+    const chart = Highcharts.chart(figureID, {
+      chart: {
+      },
+      plotOptions: {
+        line: {
+          animation: false
+        }
+      },
+      title: {
+        text: title
+      },
+      xAxis: {
+        tickInterval: 3,
+        labels: {
+          formatter: function () {
+              var label = this.axis.defaultLabelFormatter.call(this);
+              label = 
+                label == '0' ? 'Midnight' :
+                label == '3' ? '3am' :
+                label == '6' ? '6am' :
+                label == '9' ? '9am' :
+                label == '12' ? 'Noon' :
+                label == '15' ? '3pm' :
+                label == '18' ? '5pm' :
+                label == '21' ? '9pm' : label;
+              return label;
+          }
+      }        
+      },
+      yAxis: {
+        min: ymin,
+        max: ymax,
+        gridLineColor: '#ddd',
+        gridLineDashStyle: 'Dash',
+        gridLineWidth: 1,
+        title: {
+          text: 'PM2.5 (\u00b5g/m\u00b3)',
+        },
+        plotLines: this.AQI_pm25_lines // horizontal colored lines
+      },
+      legend: {
+        enabled: true,
+        verticalAlign: 'top'
+      },
+      series: [
+        {
+          name: '7 Day Mean',
+          type: 'line',
+          data: hour_mean,
+          color: '#ccc',
+          lineWidth: 10,
+          marker: { radius: 1, symbol: 'square', fillColor: 'transparent'}
+        },
+        {
+          name: 'Yesterday',
+          type: 'line',
+          data: yesterdayData,
+          color: '#aaa',
+          lineWidth: 1,
+          marker: { radius: 4, symbol: 'circle', lineColor: '#aaa', lineWidth: 1 }
+        },
+        {
+          name: 'Today',
+          type: 'line',
+          data: todayData,
+          color: '#333',
+          lineWidth: 2,
+          marker: { radius: 8, symbol: 'circle', lineColor: '#333', lineWidth: 1 }
+        }        
+      ]  
 
     });
 
@@ -293,6 +409,7 @@ class AirQualityPlot {
    */
    pm25ToYMax(pm25) {
 
+    // See:  https://github.com/MazamaScience/AirMonitorPlots/blob/5482843e8e0ccfe1e30ccf21509d0df01fe45bca/R/custom_pm25TimeseriesScales.R#L103
     let ymax = 
       pm25 <= 50 ? 50 :
       pm25 <= 100 ? 100 :
