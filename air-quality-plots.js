@@ -48,14 +48,6 @@ class AirQualityPlot {
     // See:  https://github.com/MazamaScience/AirMonitorPlots/blob/5482843e8e0ccfe1e30ccf21509d0df01fe45bca/R/custom_pm25TimeseriesScales.R#L103
     let ymin = 0;
     let ymax = this.pm25ToYMax(Math.max(...pm25));
-    // let ymax = 
-    //   max_pm25 <= 50 ? 50 :
-    //   max_pm25 <= 100 ? 100 :
-    //   max_pm25 <= 200 ? 200 :
-    //   max_pm25 <= 400 ? 500 :
-    //   max_pm25 <= 600 ? 600 :
-    //   max_pm25 <= 1000 ? 1000 :
-    //   max_pm25 <= 1500 ? 1500 : 1.05 * max_pm25
 
     const chart = Highcharts.chart(figureID, {
       chart: {
@@ -157,17 +149,7 @@ class AirQualityPlot {
     // Default to well defined y-axis limits for visual stability
     // See:  https://github.com/MazamaScience/AirMonitorPlots/blob/5482843e8e0ccfe1e30ccf21509d0df01fe45bca/R/custom_pm25TimeseriesScales.R#L103
     let ymin = 0;
-    let ymax = this.pm25ToYMax(Math.max(...pm25));
-    // let max_pm25 = Math.max(...daily_avg_pm25);
-    // let ymin = 0;
-    // let ymax = 
-    //   max_pm25 <= 50 ? 50 :
-    //   max_pm25 <= 100 ? 100 :
-    //   max_pm25 <= 200 ? 200 :
-    //   max_pm25 <= 400 ? 500 :
-    //   max_pm25 <= 600 ? 600 :
-    //   max_pm25 <= 1000 ? 1000 :
-    //   max_pm25 <= 1500 ? 1500 : 1.05 * max_pm25
+    let ymax = this.pm25ToYMax(Math.max(...daily_avg_pm25));
 
     // Crreate colored series data
     // See:  https://stackoverflow.com/questions/35854947/how-do-i-change-a-specific-bar-color-in-highcharts-bar-chart
@@ -239,7 +221,6 @@ class AirQualityPlot {
     let xhi = xlo + 8;
     let width = Math.abs(xhi - xlo);
 
-
     // Green
     let yhi = chart.yAxis[0].toPixels(0);
     let ylo = Math.max(chart.yAxis[0].toPixels(12), ymax_px);
@@ -289,7 +270,7 @@ class AirQualityPlot {
   }
 
   /**
-   * Return the AQI color associated with a PM2.5 level.
+   * Returns the AQI color associated with a PM2.5 level.
    * @param {Number} pm25 PM2.5 value in ug/m3.
    */
    pm25ToColor(pm25) {
@@ -306,7 +287,7 @@ class AirQualityPlot {
   };
 
   /**
-   * Return the ymax value appropriate for a maximum PM2.5 level.
+   * Returns the ymax value appropriate for a maximum PM2.5 level.
    * Having a finite set of ymax values prevents the yscale from jumping around too much.
    * @param {Number} pm25 Maximum PM2.5 value in ug/m3.
    */
