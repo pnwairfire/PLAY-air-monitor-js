@@ -47,7 +47,7 @@ class AirQualityPlot {
     // Default to well defined y-axis limits for visual stability
     // See:  https://github.com/MazamaScience/AirMonitorPlots/blob/5482843e8e0ccfe1e30ccf21509d0df01fe45bca/R/custom_pm25TimeseriesScales.R#L103
     let ymin = 0;
-    let ymax = pm25ToYMax(Math.max(...pm25));
+    let ymax = this.pm25ToYMax(Math.max(...pm25));
     // let ymax = 
     //   max_pm25 <= 50 ? 50 :
     //   max_pm25 <= 100 ? 100 :
@@ -157,7 +157,7 @@ class AirQualityPlot {
     // Default to well defined y-axis limits for visual stability
     // See:  https://github.com/MazamaScience/AirMonitorPlots/blob/5482843e8e0ccfe1e30ccf21509d0df01fe45bca/R/custom_pm25TimeseriesScales.R#L103
     let ymin = 0;
-    let ymax = pm25ToYMax(Math.max(...pm25));
+    let ymax = this.pm25ToYMax(Math.max(...pm25));
     // let max_pm25 = Math.max(...daily_avg_pm25);
     // let ymin = 0;
     // let ymax = 
@@ -173,7 +173,7 @@ class AirQualityPlot {
     // See:  https://stackoverflow.com/questions/35854947/how-do-i-change-a-specific-bar-color-in-highcharts-bar-chart
     let seriesData = [];
     for ( let i = 0; i < daily_avg_pm25.length; i++ ) {
-      seriesData[i] = {y: daily_avg_pm25[i], color: pm25ToColor(daily_avg_pm25[i])};
+      seriesData[i] = {y: daily_avg_pm25[i], color: this.pm25ToColor(daily_avg_pm25[i])};
     } 
 
     let days = daily_datetime.map(x => moment.tz(x, timezone).format("MMM DD"));
