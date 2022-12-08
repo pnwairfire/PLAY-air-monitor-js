@@ -1,4 +1,5 @@
-// Plotting functions for air quality data.
+// Highcharts lotting functions for air quality data.
+
 // Requires:
 //  * https://www.highcharts.com
 //  * https://uwdata.github.io/arquero/
@@ -41,7 +42,8 @@ class AirQualityPlot {
   ) {
   
     let startTime = datetime[0];
-    let title = "Hourly PM2.5 Values and Nowcast<br/>Site: " + locationName;
+    // let title = "Hourly PM2.5 Values and Nowcast<br/>Site: " + locationName;
+    let title = locationName;
     let xAxis_title = "Time (" + timezone + ")";
 
     // Default to well defined y-axis limits for visual stability
@@ -221,7 +223,7 @@ class AirQualityPlot {
     yesterday,
     today,
     locationName,
-    timezone
+    timezone//, sunrise, sunset
   ) {
 
     let title = "Nowcast by Time of Day<br/>Site: " + locationName;
@@ -243,6 +245,9 @@ class AirQualityPlot {
 
     const chart = Highcharts.chart(figureID, {
       chart: {
+        // borderColor: '#888',
+        // borderWidth: 2,
+        // type: 'line'        
       },
       plotOptions: {
         line: {
@@ -268,7 +273,11 @@ class AirQualityPlot {
                 label == '21' ? '9pm' : label;
               return label;
           }
-      }        
+          // plotBands: [
+          //   { color: 'rgb(0,0,0,0.1)', from: 0, to: sunrise },
+          //   { color: 'rgb(0,0,0,0.1)', from: sunset, to: 24 },
+          // ]
+        }        
       },
       yAxis: {
         min: ymin,
@@ -290,7 +299,7 @@ class AirQualityPlot {
           name: '7 Day Mean',
           type: 'line',
           data: hour_mean,
-          color: '#ccc',
+          color: '#aaa',
           lineWidth: 10,
           marker: { radius: 1, symbol: 'square', fillColor: 'transparent'}
         },
@@ -321,12 +330,40 @@ class AirQualityPlot {
   // ----- Utility functions -----------------------------------------------------
 
   /**
+   * Adds nighttime shading rectangles to a diurnal plot.
+   * @param {Highchart} chart 
+   * @param {Number} sunriseHour Decimal hour time of local sunrise.
+   * @param {Number} sunetHour Decimal hour time of local sunset.
+   */
+   addShadedNightDiurnal(chart, sunriseHour, sunsetHour) {
+
+    // NOTE:  0, 0 is at the top left of the graphic with y increasing downward
+    let ylo = chart.yAxis[0].toPixels(chart.yAxis[0].max);
+    let yhi = chart.yAxis[0].toPixels(0);
+    let height = yhi - ylo;
+    
+    // Sunrise
+    let xlo = chart.xAxis[0].left;
+    let xhi = chart.xAxis[0].toPixels(sunriseHour);
+    let width = xhi - xlo;
+    chart.renderer.rect(xlo, ylo, width, height, 1).attr({fill: 'rgb(0,0,0,0.1)'}).add();
+
+    // Sunset
+    xlo = chart.xAxis[0].toPixels(sunsetHour);
+    xhi = chart.xAxis[0].toPixels(23);
+    width = xhi - xlo;
+    chart.renderer.rect(xlo, ylo, width, height, 1).attr({fill: 'rgb(0,0,0,0.1)'}).add();
+
+  }
+
+
+  /**
    * Draws a stacked bar indicating AQI levels on one side of a plot.
    * @param {Highchart} chart 
    */
-  addAQIStackedBar(chart) {
+   addAQIStackedBar(chart) {
 
-  // NOTE:  0, 0 is at the top left of the graphic with y increasing downward
+    // NOTE:  0, 0 is at the top left of the graphic with y increasing downward
 
     let xmin = chart.xAxis[0].min;
     let ymin = chart.yAxis[0].min;

@@ -8,8 +8,13 @@
 //  * ./air-monitor.js
 //  * ./air-quality-plots.js
 
-
-const timeseriesPlot = function(figureID, monitor, id) {
+/**
+ * Creates a Highcharts timeseries plot with PM2.5 hourly and Nowcast values.
+ * @param {String} figureID CSS selector identifying the <div> where the plot will appear.
+ * @param {Monitor} monitor Monitor object.
+ * @param {String} id Unique timeseries identifier (deviceDeploymentID).)
+ */
+ const timeseriesPlot = function(figureID, monitor, id) {
 
   let AQP = new AirQualityPlot;
   let index = null;
@@ -42,7 +47,13 @@ const timeseriesPlot = function(figureID, monitor, id) {
 
 };
 
-const dailyBarplot = function(figureID, monitor, id) {
+/**
+ * Creates a Highcharts daily barplot plot with PM2.5 daily average values.
+ * @param {String} figureID CSS selector identifying the <div> where the plot will appear.
+ * @param {Monitor} monitor Monitor object.
+ * @param {String} id Unique timeseries identifier (deviceDeploymentID).)
+ */
+ const dailyBarplot = function(figureID, monitor, id) {
 
   let AQP = new AirQualityPlot;
   let index = null;
@@ -88,7 +99,13 @@ const dailyBarplot = function(figureID, monitor, id) {
 
 }; 
 
-const diurnalPlot = function(figureID, monitor, id) {
+/**
+ * Creates a Highcharts diurnal plot with average, yesterday and today values.
+ * @param {String} figureID CSS selector identifying the <div> where the plot will appear.
+ * @param {Monitor} monitor Monitor object.
+ * @param {String} id Unique timeseries identifier (deviceDeploymentID).)
+ */
+ const diurnalPlot = function(figureID, monitor, id) {
 
   let AQP = new AirQualityPlot;
   let index = null;
@@ -103,6 +120,8 @@ const diurnalPlot = function(figureID, monitor, id) {
 
   let locationName = monitor.meta.array('locationName')[index];
   let timezone = monitor.meta.array('timezone')[index];
+  let longitude = monitor.meta.array('longitude')[index];
+  let latitude = monitor.meta.array('latitude')[index];
 
   // Pull out the yesterday and today hourly timeseries
   let dt = monitor.data
@@ -110,9 +129,20 @@ const diurnalPlot = function(figureID, monitor, id) {
     .rename(aq.names('datetime', 'pm25'))
     .derive({local_hour: aq.escape(d => moment.tz(d.datetime, timezone).hours())});
 
+  let datetime = dt.array('datetime');
   let localHours = dt.array('local_hour');
   let pm25 = dt.array('pm25').map(x => x === undefined ? null : Math.round(10 * x) / 10);
 
+  // Day/Night shading
+  let middleDatetime = datetime[Math.round(datetime.length/2)];
+  let times = SunCalc.getTimes(middleDatetime.valueOf(), latitude, longitude);
+  let sunriseHour = 
+    moment.tz(times.sunrise, timezone).hour() + 
+    moment.tz(times.sunrise, timezone).minute() / 60; 
+  let sunsetHour = 
+    moment.tz(times.sunset, timezone).hour() + 
+    moment.tz(times.sunset, timezone).minute() / 60; 
+    
   // Calculate local time hours and yeserday/today start/end
   let lastHour = localHours[localHours.length - 1];
   let today_end = localHours.length;
@@ -135,9 +165,11 @@ const diurnalPlot = function(figureID, monitor, id) {
   let hour = dt_mean.array('local_hour');
   let hour_mean = dt_mean.array('hour_mean').map(x => x === undefined ? null : Math.round(10 * x) / 10);
   
-  const chart = AQP.pm25_diurnalPlot(figureID, hour, hour_mean, yesterday, today, locationName, timezone);
+  const chart = AQP.pm25_diurnalPlot(figureID, hour, hour_mean, yesterday, today, locationName, timezone);//, sunriseHour, sunsetHour);
   
+  AQP.addShadedNightDiurnal(chart, sunriseHour, sunsetHour);
   AQP.addAQIStackedBar(chart);
+
 
 };
 
