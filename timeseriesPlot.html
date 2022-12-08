@@ -21,9 +21,12 @@
 <!-- Load javascript -->
 <script src="https://code.highcharts.com/highcharts.js"></script>
 <script src="https://code.highcharts.com/modules/data.js"></script>
+<!--
+  * Disabling exporting for now
 <script src="https://code.highcharts.com/modules/exporting.js"></script>
 <script src="https://code.highcharts.com/modules/export-data.js"></script>
 <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+-->
 
 <!--
   *            moment: required by Highcharts to properly display local times
@@ -48,16 +51,6 @@
   <button id="plot-button" disabled onclick="makePlot()">Plot random monitor</button>
   <span id="status">Loading...</span>
 </div>
-
-<!-- <figure class="highcharts-figure">
-  <div id="plot1"></div>
-</figure>
-<figure class="highcharts-figure">
-  <div id="plot2"></div>
-</figure>
-<figure class="highcharts-figure">
-  <div id="plot3"></div>
-</figure> -->
 
 <div idi="plot-row">
   <div id="plot1"></div>

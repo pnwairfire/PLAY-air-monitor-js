@@ -165,9 +165,8 @@
   let hour = dt_mean.array('local_hour');
   let hour_mean = dt_mean.array('hour_mean').map(x => x === undefined ? null : Math.round(10 * x) / 10);
   
-  const chart = AQP.pm25_diurnalPlot(figureID, hour, hour_mean, yesterday, today, locationName, timezone);//, sunriseHour, sunsetHour);
+  const chart = AQP.pm25_diurnalPlot(figureID, hour, hour_mean, yesterday, today, locationName, timezone, sunriseHour, sunsetHour);
   
-  AQP.addShadedNightDiurnal(chart, sunriseHour, sunsetHour);
   AQP.addAQIStackedBar(chart);
 
 
