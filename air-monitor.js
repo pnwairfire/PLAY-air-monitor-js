@@ -102,7 +102,7 @@ class Monitor {
 
     let meta = this.meta
       .params({ids: ids})
-      .filter( (d, $) => op.includes($.ids, d.deviceDeploymentID) );
+      .filter((d, $) => op.includes($.ids, d.deviceDeploymentID)); // arquero filter
 
     let data = this.data.select('datetime', ids);
 
@@ -147,7 +147,7 @@ class Monitor {
 
     meta = meta
       .params({ids: ids})
-      .filter( (d, $) => op.includes($.ids, d.deviceDeploymentID) );
+      .filter((d, $) => op.includes($.ids, d.deviceDeploymentID)); // arquero filter
 
     // Return
     let return_monitor = new Monitor(meta, data);
@@ -164,7 +164,7 @@ class Monitor {
   trimDate(timezone) {
 
     // Calculate local time hours and start/end
-    let localTime = this.data.array('datetime').map(x => moment.tz(x, timezone));
+    let localTime = this.data.array('datetime').map(o => moment.tz(o, timezone));
     let hours = localTime.map(x => x.hours());
     let start = hours[0] == 0 ? 0 : 24 - hours[0];
     let end = hours[hours.length - 1] == 23 ? hours.length - 1 : hours.length - hours[hours.length - 1] - 1;
@@ -178,6 +178,25 @@ class Monitor {
     let return_monitor = new Monitor(meta, data);
     return(return_monitor);
     
+  }
+
+  // ----- Get Data ------------------------------------------------------------
+
+  getNowcast(id) {
+
+    // See:  https://observablehq.com/@openaq/epa-pm-nowcast
+
+    // TODO:  Throw error if monitor has more than one device.
+
+    // TODO:  Create a rolling function to run nowcast repeatedly.
+    
+    let pm25 = this.data.array(id);
+    let x = pm25.slice(-12);
+
+    let returnVal = this.#nowcastPM(x);
+    
+    return(returnVal);
+
   }
 
 
@@ -322,5 +341,112 @@ class Monitor {
     // Return the modified data table
     return(dt.derive(values1).derive(values2));
   }
+
+  // ---------------------------------------------------------------------------
+  // ----- Nowcast function from https://observablehq.com/@openaq/epa-pm-nowcast
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Convert an array of 12 PM2.5 concentrations in chronological order (older first)
+   * into a single NowCast value 
+   * @param {Number} x Array of 12 values in chronological order.
+   */
+  #nowcastPM(x) {
+
+    // NOTE:  We don't insist on 12 hours of data.
+
+    // NOTE:  WARNING:  In javascript `null * 1 = 0` which messes up things in
+    // NOTE:  our mapping functions. So we convert all null to NaN beforehand
+    // NOTE:  and then back to null upon return.
+  
+    // NOTE:  This algorithm assumes reverse chronological order
+    // NOTE:  See:  https://observablehq.com/@openaq/epa-pm-nowcast
+
+    // NOTE:  map/reduce syntax: a: accumulator; o: object; i: index
+    x = x.reverse().map(o => o === null ? NaN : o);
+
+    // Check for recent values;
+    let recentValidCount = x.slice(0,3).reduce((a,o) => (Number.isNaN(o) ? a : a + 1), 0);
+    if ( recentValidCount < 2 ) return(null);
+
+    let validIndices = x.reduce((a,o,i) => (Number.isNaN(o) ? a : a.concat(i)), []); 
+
+    // NOTE:  max and min calculations need to be tolerant of missing values
+    let max = x.filter(o => !Number.isNaN(o)).reduce((a,o) => o > a ? o : a);
+    let min = x.filter(o => !Number.isNaN(o)).reduce((a,o) => o < a ? o : a);
+    let scaledRateOfChange = (max - min) / max;
+    let weightFactor = 1 - scaledRateOfChange < 0.5 ? 0.5 : 1 - scaledRateOfChange;
+
+    let weightedSum = x
+      .map((o,i) => o * Math.pow(weightFactor,i)) // maps onto an array including NaN
+      .filter(x => !Number.isNaN(x))              // remove NaN before calculating sum
+      .reduce((a,o) => a + o);                    // sum of all valid numbers
+
+    let weightFactorSum = validIndices
+      .map(o => Math.pow(weightFactor, o))
+      .reduce((a,o) => a + o);
+    
+    let returnVal = parseFloat((weightedSum / weightFactorSum).toFixed(1));
+
+    // Convert NaN back to null for Highcharts
+    returnVal = Number.isNaN(returnVal) ? null : returnVal;
+    return(returnVal);
+
+  }
+
+  // See also:  https://observablehq.com/@openaq/epa-pm-nowcast
+  
+  // // Calculate the nowcast value given formula variables:
+  // //  cByHour: Hourly concentrations for the previous numHours hours (order: recent to oldest)
+  // //  numHours: num of hours to calculate for
+  // //  weightFactorMin (optional): weight factor raised to this min if calculated less then this
+  // #nowcast(cByHour, numHours, weightFactorMin) {
+  //   if (cByHour.length != numHours)
+  //       return
+
+  //   if ((cByHour[0] === undefined) || (cByHour[1] === undefined))
+  //       return
+
+  //   let wFactor = weightFactor(cByHour, weightFactorMin)
+
+  //   let sumHourlyByWeightFactor = cByHour.reduce(function (prev, curr, idx) {
+  //       if (!curr) return prev
+  //       return prev + (curr * Math.pow(wFactor, idx))
+  //   })
+
+  //   let sumWeightFactor = cByHour.reduce(function (prev, curr, idx) {
+  //       if (!curr) return prev
+  //       if (idx == 1)
+  //           prev = Math.pow(wFactor, idx - 1)
+  //       return prev + Math.pow(wFactor, idx)
+  //   })
+
+  //   let nowCast = sumHourlyByWeightFactor / sumWeightFactor
+  //   return nowCast
+  // }
+
+  // // Calculate the weight factor ('w' in the nowcast formula)
+  // //  cByHour: list of concentrations by hour
+  // //  weightFactorMin (optional): weight factor raised to this min if calculated less then this
+  // #weightFactor(cByHour, weightFactorMin) {
+  //   let hours = filterUndefined(cByHour)
+  //   let min = Math.min.apply(Math, hours)
+  //   let max = Math.max.apply(Math, hours)
+  //   let range = max - min
+  //   let rateOfChange = range / max
+  //   let factor = 1 - rateOfChange;
+  //   if (weightFactorMin && factor <= weightFactorMin)
+  //       factor = weightFactorMin
+  //   return factor
+  // }
+
+  // #filterUndefined(list) {
+  //   // return list.filter(function (listVal) {
+  //   //   return !(listVal === null || listVal === undefined)
+  //   // })
+  //   return list.filter(x => !(listVal === null || listVal === undefined));
+  //   })
+  // }
+
 
 }

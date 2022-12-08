@@ -51,6 +51,7 @@ class AirQualityPlot {
     let ymax = this.pm25ToYMax(Math.max(...pm25));
 
     const chart = Highcharts.chart(figureID, {
+      accessibility: { enabled: false },
       chart: {
         animation: false
       },
@@ -161,6 +162,7 @@ class AirQualityPlot {
     let days = daily_datetime.map(x => moment.tz(x, timezone).format("MMM DD"));
 
     const chart = Highcharts.chart(figureID, {
+      accessibility: { enabled: false },
       chart: {
       },
       plotOptions: {
@@ -248,6 +250,7 @@ class AirQualityPlot {
     } 
 
     const chart = Highcharts.chart(figureID, {
+      accessibility: { enabled: false },
       chart: {
         // borderColor: '#888', // entire chart
         // borderWidth: 2,

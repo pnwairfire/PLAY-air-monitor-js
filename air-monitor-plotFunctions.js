@@ -30,6 +30,8 @@
   let locationName = monitor.meta.array('locationName')[index];
   let timezone = monitor.meta.array('timezone')[index];
 
+  let id_nowcast = monitor.getNowcast(id);
+
   // Create a new table with NowCast values for this monitor
   let dt = monitor.data
     .select(['datetime', id])
