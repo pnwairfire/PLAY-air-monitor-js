@@ -53,7 +53,9 @@ class AirQualityPlot {
     const chart = Highcharts.chart(figureID, {
       accessibility: { enabled: false },
       chart: {
-        animation: false
+        animation: false,
+        plotBorderColor: '#ddd',
+        plotBorderWidth: 1      
       },
       plotOptions: {
         series: {
@@ -78,7 +80,7 @@ class AirQualityPlot {
       },
       xAxis: {
         type: 'datetime',
-        title: {margin: 20, style: { "color": "#333", "fontSize": "16px" }, text: xAxis_title},
+        // title: {margin: 20, style: { "color": "#333", "fontSize": "16px" }, text: xAxis_title},
         gridLineColor: '#ddd',
         gridLineDashStyle: 'Dash',
         gridLineWidth: 1,
@@ -166,6 +168,8 @@ class AirQualityPlot {
     const chart = Highcharts.chart(figureID, {
       accessibility: { enabled: false },
       chart: {
+        plotBorderColor: '#ddd',
+        plotBorderWidth: 1      
       },
       plotOptions: {
         column: {
@@ -192,8 +196,12 @@ class AirQualityPlot {
         plotLines: this.AQI_pm25_lines // horizontal colored lines
       },
       legend: {
-        enabled: false
+        enabled: true,
+        verticalAlign: 'top'
       },
+      // legend: {
+      //   enabled: false
+      // },
       series: [{
         name: 'Daily Avg PM2.5',
         type: 'column',
@@ -256,7 +264,7 @@ class AirQualityPlot {
     const chart = Highcharts.chart(figureID, {
       accessibility: { enabled: false },
       chart: {
-        plotBorderColor: '#666',
+        plotBorderColor: '#ddd',
         plotBorderWidth: 1      
       },
       plotOptions: {
@@ -288,7 +296,7 @@ class AirQualityPlot {
           { color: 'rgb(0,0,0,0.1)', from: 0, to: sunrise },
           { color: 'rgb(0,0,0,0.1)', from: sunset, to: 24 },
         ]
-    },
+      },
       yAxis: {
         min: ymin,
         max: ymax,
