@@ -29,6 +29,8 @@
   
   AQP.addAQIStackedBar(chart);
 
+  // TODO:  potentially add title here? From a passed in argument??
+
 };
 
 /**
@@ -49,6 +51,8 @@
   const chart = AQP.pm25_dailyBarplot(figureID, datetime, avg_pm25, locationName, timezone);
   
   AQP.addAQIStackedBar(chart);
+
+  // TODO:  potentially add title here? From a passed in argument??
 
 }; 
 
@@ -110,6 +114,7 @@
   
   AQP.addAQIStackedBar(chart);
 
+  // TODO:  potentially add title here? From a passed in argument??
 
 };
 

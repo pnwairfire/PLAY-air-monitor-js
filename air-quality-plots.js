@@ -30,6 +30,7 @@ class AirQualityPlot {
    * @param {Array} nowcast Hourly Nowcast values.
    * @param {String} locationName Human readable location name.
    * @param {String} timezone Olsen timezone.
+   * @param {String} title Optional chart title. 
    * @returns 
    */
   pm25_timeseriesPlot(
@@ -38,12 +39,11 @@ class AirQualityPlot {
     pm25,
     nowcast,
     locationName,
-    timezone
+    timezone,
+    title = ''
   ) {
   
     let startTime = datetime[0];
-    // let title = "Hourly PM2.5 Values and Nowcast<br/>Site: " + locationName;
-    let title = locationName;
     let xAxis_title = "Time (" + timezone + ")";
 
     // Default to well defined y-axis limits for visual stability
@@ -136,6 +136,7 @@ class AirQualityPlot {
    * @param {Array} daily_avg_pm25 Daily average PM2.5 values.
    * @param {String} locationName Human readable location name.
    * @param {String} timezone Olsen timezone.
+   * @param {String} title Optional chart title.
    * @returns 
    */
   pm25_dailyBarplot(
@@ -143,10 +144,11 @@ class AirQualityPlot {
     daily_datetime,
     daily_avg_pm25,
     locationName,
-    timezone
+    timezone,
+    title = ''
   ) {
 
-    let title = "Daily Average PM2.5<br/>Site: " + locationName;
+    // let title = "Daily Average PM2.5<br/>Site: " + locationName;
 
     // Default to well defined y-axis limits for visual stability
     let ymin = 0;
@@ -218,6 +220,7 @@ class AirQualityPlot {
    * @param {String} timezone Olsen timezone.
    * @param {Number} sunrise Decimal hour of local time sunrise.
    * @param {Number} sunset Decimal hour of local time sunset.
+   * @param {String} title Optional chart title. 
    * @returns 
    */
    pm25_diurnalPlot(
@@ -229,10 +232,11 @@ class AirQualityPlot {
     locationName,
     timezone, 
     sunrise, 
-    sunset
+    sunset,
+    title = ''
   ) {
 
-    let title = "Nowcast by Time of Day<br/>Site: " + locationName;
+    // let title = "Nowcast by Time of Day<br/>Site: " + locationName;
 
     // Default to well defined y-axis limits for visual stability
     let ymin = 0;

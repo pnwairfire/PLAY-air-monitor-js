@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arquero Test</title>
+  <link rel="icon" href="data:;base64,=">
+  <link rel="stylesheet" 
+        href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" 
+        integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" 
+        crossorigin="anonymous">
+  <style>
+    #container {
+      margin: 5px;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- Load javascript -->
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/data.js"></script>
+<!--
+  * Disabling exporting for now
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+-->
+
+<!--
+  *            moment: required by Highcharts to properly display local times
+  *           arquero: required by air-monitor.js
+  *       air-monitor: defines the Monitor class
+  * air-quality-plots: Highcharts plotting functions
+-->
+<script src="./moment.min.js"></script>
+<script src="./moment-timezone-with-data-1970-2030.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/arquero@latest"></script>
+
+<script src="./suncalc.js"></script>
+
+<script src="./air-monitor.js"></script>
+<script src="./air-quality-plots.js"></script>
+<script src="./air-monitor-plotFunctions.js"></script>
+
+<!------ Begin page ----------------------------------------------------------->
+
+<div id="container">
+
+  <div class="row">
+    <div class="col-md-12">
+      <button id="plot-button" disabled onclick="selectMonitor()">Plot random monitor</button>
+      <span id="status">Loading...</span>
+    </div>
+  </div>
+
+  <hr>
+  
+  <div class="row">
+    <div class="col-md-12">
+      <h1 id="locationName"></h1>
+    </div>
+  </div>
+
+  <div class="row">
+
+    <div class="col-md-3">
+
+      <div>
+        <span>Near sompeplace...</span><br>
+        <span>AQSID:</span><span id="AQSID"></span><br>
+        <span>QC report link</span>
+      </div>
+
+    </div>
+
+    <div class="col-md-9">
+
+      <div class="row">
+        <div class="col-md-6">
+          <span class="bold-label">Recent</span><br>
+          <button onClick="setPlotType('timeseriesPlot')">Hourly</button>
+          <button onClick="setPlotType('dailyBarplot')">Daily</button>
+          <button onClick="setPlotType('diurnalPlot')">Diurnal</button>
+        </div>
+        <div class="col-md-6">
+          button row
+        </div>
+      </div>
+
+    </div> 
+
+  </div>
+   
+  <div class="row">
+
+    <div class="col-md-3">
+      <div>leaflet map</div>
+    </div>
+
+    <div class="col-md-9">
+      <div id="plot"></div>
+    </div> 
+
+  </div>
+   
+</div> 
+<!-- End "container"-->
+
+<!------ End page ------------------------------------------------------------->
+
+<script>
+
+// ----- Initialize ------------------------------------------------------------
+
+let all_monitors = null;
+let selected_id = null;
+let selected_plot_type = 'timeseriesPlot';
+
+document.addEventListener('DOMContentLoaded', function () {
+  loadData(); 
+});
+
+// ----- Define functions ------------------------------------------------------
+
+// Load data and combine after all data are loaded
+loadData = async function() {
+  console.time('loadData');
+
+  // These temporary objects are only for loading data
+  let m1 = new Monitor;
+  let m2 = new Monitor;
+  let m3 = new Monitor;
+
+  // Block until data arrives.
+  await m1.loadLatest('airnow');
+  await m2.loadLatest('airsis');
+  await m3.loadLatest('wrcc');
+
+  // Combine after all data has been downlaoded
+  all_monitors = m1.combine(m2).combine(m3).dropEmpty(); 
+  
+  // Update the user interface
+  document.querySelector("#status").textContent = "Loaded " + all_monitors.count() + " monitors.";
+  document.querySelector("#plot-button").disabled = false;
+
+  console.timeEnd('loadData');
+
+  // Initialize interface
+  selected_id = all_monitors.meta.sample(1).get('deviceDeploymentID');
+  createPlot();
+}
+
+// Select a specific monitor and update the UI
+selectMonitor = function() {
+  // Pick a random id
+  const id = all_monitors.meta.sample(1).get('deviceDeploymentID');
+  selected_id = id;
+
+  // Update UI
+  document.querySelector("#locationName").textContent = all_monitors.getMetadata(id, 'locationName');
+  document.querySelector("#AQSID").textContent = all_monitors.getMetadata(id, 'AQSID');
+
+  createPlot();
+}
+
+setPlotType = function(plot_type) {
+  selected_plot_type = plot_type;
+  createPlot();
+}
+
+createPlot = function() {
+  const plot_type = selected_plot_type;
+  switch(plot_type) {
+    case 'timeseriesPlot':
+      timeseriesPlot('plot', all_monitors, selected_id);
+      break;
+    case 'dailyBarplot':
+      dailyBarplot('plot', all_monitors, selected_id);
+      break;
+    case 'diurnalPlot':
+      diurnalPlot('plot', all_monitors, selected_id);
+      break;
+    default:
+      timeseriesPlot('plot', all_monitors, selected_id);
+      break;
+  }
+}
+
+</script>  
+
+</body>
+
+</html>
+
