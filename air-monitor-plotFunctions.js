@@ -36,12 +36,15 @@
   let dt = monitor.data
     .select(['datetime', id])
     .rename(aq.names('datetime', 'pm25'))
-    .derive({ nowcast: aq.rolling(d => op.average(d.pm25), [-2, 0]) })
+//    .derive({ nowcast: aq.rolling(d => op.average(d.pm25), [-2, 0]) })
 
+// TODO:  monitor.getDatetime()
+// TODO:  monitor.getPM25(id)
   // NOTE:  Hightcharts will error out if any values are undefined. But null is OK.
   let datetime = dt.array('datetime');
   let pm25 = dt.array('pm25').map(x => x === undefined ? null : Math.round(10 * x) / 10);
-  let nowcast = dt.array('nowcast').map(x => x === undefined ? null : Math.round(10 * x) / 10);
+//  let nowcast = dt.array('nowcast').map(x => x === undefined ? null : Math.round(10 * x) / 10);
+  let nowcast = monitor.getNowcast(id);
 
   const chart = AQP.pm25_timeseriesPlot(figureID, datetime, pm25, nowcast, locationName, timezone);
   

@@ -180,22 +180,23 @@ class Monitor {
     
   }
 
-  // ----- Get Data ------------------------------------------------------------
+  // ----- Get single-device values --------------------------------------------
 
   getNowcast(id) {
 
     // See:  https://observablehq.com/@openaq/epa-pm-nowcast
-
-    // TODO:  Throw error if monitor has more than one device.
-
-    // TODO:  Create a rolling function to run nowcast repeatedly.
     
     let pm25 = this.data.array(id);
-    let x = pm25.slice(-12);
 
-    let returnVal = this.#nowcastPM(x);
-    
-    return(returnVal);
+    let nowcast = Array(pm25.length);
+    for (let i = 0; i < pm25.length; i++) {
+      let end = i + 1;
+      let start = end < 12 ? 0 : end - 12;
+      nowcast[i] = this.#nowcastPM(pm25.slice(start,end));
+    }
+
+    let dummy = 1;
+    return(nowcast);
 
   }
 
@@ -347,22 +348,21 @@ class Monitor {
   // ---------------------------------------------------------------------------
 
   /**
-   * Convert an array of 12 PM2.5 concentrations in chronological order (older first)
-   * into a single NowCast value 
+   * Convert an array of up to 12 PM2.5 concentrations in chronological order
+   * into a single NowCast value .
    * @param {Number} x Array of 12 values in chronological order.
    */
   #nowcastPM(x) {
 
-    // NOTE:  We don't insist on 12 hours of data.
-
-    // NOTE:  WARNING:  In javascript `null * 1 = 0` which messes up things in
-    // NOTE:  our mapping functions. So we convert all null to NaN beforehand
-    // NOTE:  and then back to null upon return.
-  
-    // NOTE:  This algorithm assumes reverse chronological order
-    // NOTE:  See:  https://observablehq.com/@openaq/epa-pm-nowcast
+    // NOTE:  We don't insist on 12 hours of data. Convert single values into arrays.
+    if (typeof(x) === 'number') x = [x];
 
     // NOTE:  map/reduce syntax: a: accumulator; o: object; i: index
+
+    // NOTE:  The algorithm below assumes reverse chronological order.
+    // NOTE:  WARNING:  In javascript `null * 1 = 0` which messes up things in
+    // NOTE:  our mapping functions. So we convert all null to NaN
+    // NOTE:  and then back to null upon return.
     x = x.reverse().map(o => o === null ? NaN : o);
 
     // Check for recent values;
@@ -393,60 +393,6 @@ class Monitor {
     return(returnVal);
 
   }
-
-  // See also:  https://observablehq.com/@openaq/epa-pm-nowcast
-  
-  // // Calculate the nowcast value given formula variables:
-  // //  cByHour: Hourly concentrations for the previous numHours hours (order: recent to oldest)
-  // //  numHours: num of hours to calculate for
-  // //  weightFactorMin (optional): weight factor raised to this min if calculated less then this
-  // #nowcast(cByHour, numHours, weightFactorMin) {
-  //   if (cByHour.length != numHours)
-  //       return
-
-  //   if ((cByHour[0] === undefined) || (cByHour[1] === undefined))
-  //       return
-
-  //   let wFactor = weightFactor(cByHour, weightFactorMin)
-
-  //   let sumHourlyByWeightFactor = cByHour.reduce(function (prev, curr, idx) {
-  //       if (!curr) return prev
-  //       return prev + (curr * Math.pow(wFactor, idx))
-  //   })
-
-  //   let sumWeightFactor = cByHour.reduce(function (prev, curr, idx) {
-  //       if (!curr) return prev
-  //       if (idx == 1)
-  //           prev = Math.pow(wFactor, idx - 1)
-  //       return prev + Math.pow(wFactor, idx)
-  //   })
-
-  //   let nowCast = sumHourlyByWeightFactor / sumWeightFactor
-  //   return nowCast
-  // }
-
-  // // Calculate the weight factor ('w' in the nowcast formula)
-  // //  cByHour: list of concentrations by hour
-  // //  weightFactorMin (optional): weight factor raised to this min if calculated less then this
-  // #weightFactor(cByHour, weightFactorMin) {
-  //   let hours = filterUndefined(cByHour)
-  //   let min = Math.min.apply(Math, hours)
-  //   let max = Math.max.apply(Math, hours)
-  //   let range = max - min
-  //   let rateOfChange = range / max
-  //   let factor = 1 - rateOfChange;
-  //   if (weightFactorMin && factor <= weightFactorMin)
-  //       factor = weightFactorMin
-  //   return factor
-  // }
-
-  // #filterUndefined(list) {
-  //   // return list.filter(function (listVal) {
-  //   //   return !(listVal === null || listVal === undefined)
-  //   // })
-  //   return list.filter(x => !(listVal === null || listVal === undefined));
-  //   })
-  // }
 
 
 }
