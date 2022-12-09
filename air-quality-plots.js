@@ -252,11 +252,8 @@ class AirQualityPlot {
     const chart = Highcharts.chart(figureID, {
       accessibility: { enabled: false },
       chart: {
-        // borderColor: '#888', // entire chart
-        // borderWidth: 2,
-        // type: 'line' 
-        plotBorderColor: '#888', // plot area only
-        plotBorderWidth: 2       
+        plotBorderColor: '#666',
+        plotBorderWidth: 1      
       },
       plotOptions: {
         line: {

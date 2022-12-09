@@ -199,7 +199,7 @@ class Monitor {
   getPM25(id) {
     let pm25 = this.data
       .array(id)
-      .map(x => x === undefined ? null : Math.round(10 * x) / 10);
+      .map(x => (x === undefined || x === null || isNaN(x)) ? null : Math.round(10 * x) / 10);
     return(pm25);
   }
     

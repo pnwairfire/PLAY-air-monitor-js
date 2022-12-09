@@ -2,9 +2,10 @@
 // and send this to an AirQualityPlot method.
 
 // Requires:
-//  * https://uwdata.github.io/arquero/
+//  * https://uwdata.github.io/arquero
 //  * https://momentjs.com
-//  * https://momentjs.com/timezone/
+//  * https://momentjs.com/timezone
+//  * https://github.com/mourner/suncalc
 //  * ./air-monitor.js
 //  * ./air-quality-plots.js
 
@@ -68,6 +69,7 @@
 
   const datetime = monitor.getDatetime();
   const pm25 = monitor.getPM25(id);
+  const nowcast = monitor.getNowcast(id);
   const localHours = datetime.map(o => moment.tz(o, timezone).hours());
 
   // Day/Night shading
@@ -80,15 +82,15 @@
     moment.tz(times.sunset, timezone).hour() + 
     moment.tz(times.sunset, timezone).minute() / 60; 
     
-  // Calculate local time hours and yeserday/today start/end
+  // Get yeserday/today start/end
   let lastHour = localHours[localHours.length - 1];
   let today_end = localHours.length;
   let today_start = localHours.length - 1 - lastHour;
   let yesterday_end = today_start;
   let yesterday_start = today_start - 24;
 
-  let yesterday = pm25.slice(yesterday_start, yesterday_end);
-  let today = pm25.slice(today_start, today_end);
+  let yesterday = nowcast.slice(yesterday_start, yesterday_end);
+  let today = nowcast.slice(today_start, today_end);
  
   // Create the average by local_hour data table
   // NOTE:  Start by trimming to full days in the local timezone
