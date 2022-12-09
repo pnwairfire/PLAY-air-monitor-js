@@ -94,7 +94,9 @@
  
   // Create the average by local_hour data table
   // NOTE:  Start by trimming to full days in the local timezone
-  let dt_mean = monitor.trimDate(timezone).data
+  let dt_mean = monitor
+    .trimDate(timezone).data     // full days only
+    .slice(-(7*24))              // last 7 full days
     .select(['datetime', id])
     .rename(aq.names('datetime', 'pm25'))
     .derive({local_hour: aq.escape(d => moment.tz(d.datetime, timezone).hours())})
