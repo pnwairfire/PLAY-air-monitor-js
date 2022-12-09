@@ -160,6 +160,7 @@ class Monitor {
    * local time days. Any partial days are discarded.
    * @note This function requires moment.js.
    * @param {String} timezone Olsen timezone for the time series
+   * @returns {Monitor} A subset of the incoming Monitor object.
    */
   trimDate(timezone) {
 
@@ -182,24 +183,93 @@ class Monitor {
 
   // ----- Get single-device values --------------------------------------------
 
-  getNowcast(id) {
-
-    // See:  https://observablehq.com/@openaq/epa-pm-nowcast
+  /**
+   * Returns the array of date objects that define this Monitor object's time axis.
+   * @returns {...Date} Array of Date objects.
+   */
+  getDatetime(id) {
+    return(this.data.array('datetime'));
+  }
+  
+  /**
+   * Returns an array of NowCast values derived from the time series identified by id.
+   * @param {String} id deviceDeploymentID of the time series to select.
+   * @returns  {...Number}
+   */
+  getPM25(id) {
+    let pm25 = this.data
+      .array(id)
+      .map(x => x === undefined ? null : Math.round(10 * x) / 10);
+    return(pm25);
+  }
     
+  /**
+   * Returns an array of NowCast values derived from the time series identified by id.
+   * @param {*} id deviceDeploymentID of the time series to select.
+   * @returns {...Number} Array of NowCast values.
+   */
+  getNowcast(id) {
+    // See:  https://observablehq.com/@openaq/epa-pm-nowcast    
     let pm25 = this.data.array(id);
-
     let nowcast = Array(pm25.length);
     for (let i = 0; i < pm25.length; i++) {
       let end = i + 1;
       let start = end < 12 ? 0 : end - 12;
       nowcast[i] = this.#nowcastPM(pm25.slice(start,end));
     }
-
-    let dummy = 1;
     return(nowcast);
+  }
+
+  /**
+   * Calculates daily averages for the time series identified by id after the
+   * time series has been trimmed to local time day boundaries. The starting
+   * hour of each local time day and the daily average PM2.5 value associated
+   * with that day are returned in an object with 'datetime' and 'avg_pm25' properties.
+   * @param {*} id deviceDeploymentID of the time series to select.
+   * @returns {Object} Object with 'datetime' and 'pm25' arrays.
+   */
+  getDailyAverageObject(id) {
+
+    let index = this.getIDs().indexOf(id);
+    let timezone = this.meta.array('timezone')[index];
+
+    // Create a new table with 24-rolling average values for this monitor
+    // NOTE:  Start by trimming to full days in the local timezone
+    let dt = this
+      .trimDate(timezone).data
+      .select(['datetime', id])
+      .rename(aq.names('datetime', 'pm25'))
+      .derive({ avg_24hr: aq.rolling(d => op.average(d.pm25), [-23, 0]) })
+
+    // NOTE:  Hightcharts will error out if any values are undefined. But null is OK.
+    let datetime = dt.array('datetime');
+    let pm25 = dt.array('pm25').map(x => x === undefined ? null : Math.round(10 * x) / 10);
+    let avg_24hr = dt.array('avg_24hr').map(x => x === undefined ? null : Math.round(10 * x) / 10);
+
+    let dayCount = avg_24hr.length / 24;
+    let time_indices = [];
+    let avg_indices = [];
+    for (let i = 0; i < dayCount; i++) { 
+      time_indices[i] = 24 * i;     // avg assigned to beginning of day
+      avg_indices[i] = 24 * i + 23; // avg calculated at end of day
+    }
+
+    let daily_datetime = time_indices.map(x => datetime[x]);
+    let daily_pm25 = avg_indices.map(x => avg_24hr[x]);
+
+    return({datetime: daily_datetime, avg_pm25: daily_pm25});
 
   }
 
+  /**
+   * Returns the named metadata field for the time series identified by id.
+   * @param {*} id deviceDeploymentID of the time series to select.
+   * @returns {Object} Object with 'datetime' and 'pm25' arrays.
+   */
+  getMetadata(id, fieldName) {
+    const index = this.getIDs().indexOf(id);
+    return(this.meta.array(fieldName)[index]);
+  }
 
 // /**
 //  * Augment monitor.meta with current status information derived from monitor.data
@@ -254,7 +324,7 @@ class Monitor {
 
   /**
    * Returns an array of unique identifiers (deviceDeploymentIDs) found in a Monitor object
-   * @returns {Array} An array of deviceDeploymentIDs.
+   * @returns {...String} An array of deviceDeploymentIDs.
    */
    getIDs() {
     return(this.meta.array('deviceDeploymentID'));
@@ -349,8 +419,9 @@ class Monitor {
 
   /**
    * Convert an array of up to 12 PM2.5 concentrations in chronological order
-   * into a single NowCast value .
-   * @param {Number} x Array of 12 values in chronological order.
+   * into a single NowCast value.
+   * @param {...Number} x Array of 12 values in chronological order.
+   * @returns {Number} NowCast value.
    */
   #nowcastPM(x) {
 
