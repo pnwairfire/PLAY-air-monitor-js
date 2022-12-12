@@ -66,7 +66,7 @@
 <div id="container">
 
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-sm-12">
       <button id="plot-button"disabled onclick="randomMonitor()">Select random monitor</button>
       <span id="status">Loading...</span>
     </div>
@@ -75,14 +75,14 @@
   <hr>
   
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-sm-12">
       <h1 id="locationName"></h1>
     </div>
   </div>
 
   <div class="row">
 
-    <div class="col-md-4">
+    <div class="col-sm-4">
 
       <div>
         <span>Near sompeplace...</span><br>
@@ -92,16 +92,16 @@
 
     </div>
 
-    <div class="col-md-8">
+    <div class="col-sm-8">
 
       <div id="button-row" class="row">
-        <div class="col-md-6">
+        <div class="col-sm-6">
           <label class="bold-label">Recent:</label>
           <button  class="btn btn-sm btn-primary" onClick="setPlotType('timeseriesPlot')">Hourly</button>
           <button  class="btn btn-sm btn-primary" onClick="setPlotType('dailyBarplot')">Daily</button>
           <button  class="btn btn-sm btn-primary" onClick="setPlotType('diurnalPlot')">Diurnal</button>
         </div>
-        <div class="col-md-6">
+        <div class="col-sm-6">
           <label class="bold-label">Long Term:</label>
           <button disabled="true" class="btn  btn-sm btn-primary" onClick="setPlotType('timeseriesPlot')">YTD</button>
           <button disabled="true" class="btn  btn-sm btn-primary" onClick="setPlotType('dailyBarplot')">Stats</button>
@@ -114,11 +114,11 @@
    
   <div class="row">
 
-    <div class="col-md-4">
+    <div class="col-sm-4">
       <div id="map"></div>
     </div>
 
-    <div class="col-md-8">
+    <div class="col-sm-8">
       <div id="plot"></div>
     </div> 
 
@@ -133,16 +133,18 @@
 
 // ----- Initialize ------------------------------------------------------------
 
+let AQP = new AirQualityPlot;
+
 let all_monitors = null;
 let selected_id = null;
 let selected_plot_type = 'timeseriesPlot';
 
 var map = L.map('map').setView([40, -100], 10);
+
 const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
   attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 }).addTo(map);
-
 
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -153,7 +155,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Load data and combine after all data are loaded
 loadData = async function() {
-  console.time('loadData');
 
   // These temporary objects are only for loading data
   let m1 = new Monitor;
@@ -161,23 +162,34 @@ loadData = async function() {
   let m3 = new Monitor;
 
   // Block until data arrives.
+  console.time('loadData');
   await m1.loadLatest('airnow');
   await m2.loadLatest('airsis');
   await m3.loadLatest('wrcc');
+  console.timeEnd('loadData');
 
   // Combine after all data has been downlaoded
+  console.time('combine');
+  document.querySelector("#status").textContent = "Combining...";
   all_monitors = m1.combine(m2).combine(m3).dropEmpty(); 
-  
+  console.timeEnd('combine');
+
+  console.time('createMap');
+  document.querySelector("#status").textContent = "Creating map...";
+  let monitorGeoJSON = all_monitors.createGeoJSON();
+  createMonitorLayer(monitorGeoJSON).addTo(map);
+  console.timeEnd('createMap');
+
   // Update the user interface
   document.querySelector("#status").textContent = "Loaded " + all_monitors.count() + " monitors.";
   document.querySelector("#plot-button").disabled = false;
 
-  console.timeEnd('loadData');
-
   // Initialize interface
   selected_id = all_monitors.meta.sample(1).get('deviceDeploymentID');
 
+  updateMapView();
   updateUI();
+ 
 }
 
 // Select a specific monitor and update the UI
@@ -186,28 +198,15 @@ randomMonitor = function() {
   const id = all_monitors.meta.sample(1).get('deviceDeploymentID');
   selected_id = id;
 
+  updateMapView();
   updateUI();
 }
 
 updateUI = function() {
   document.querySelector("#locationName").textContent = all_monitors.getMetadata(selected_id, 'locationName');
   document.querySelector("#AQSID").textContent = all_monitors.getMetadata(selected_id, 'AQSID');
-  map.setView({
-    lng: all_monitors.getMetadata(selected_id, 'longitude'), 
-    lat: all_monitors.getMetadata(selected_id, 'latitude')
-  });
-  createPlot();
-}
 
-setPlotType = function(plot_type) {
-  selected_plot_type = plot_type;
-  updateUI();
-  // createPlot();
-}
-
-createPlot = function() {
-  const plot_type = selected_plot_type;
-  switch(plot_type) {
+  switch(selected_plot_type) {
     case 'timeseriesPlot':
       timeseriesPlot('plot', all_monitors, selected_id);
       break;
@@ -220,6 +219,173 @@ createPlot = function() {
     default:
       timeseriesPlot('plot', all_monitors, selected_id);
       break;
+  }  
+}
+
+updateMapView = function() {
+  map.setView({
+    lng: all_monitors.getMetadata(selected_id, 'longitude'), 
+    lat: all_monitors.getMetadata(selected_id, 'latitude')
+  });
+}
+
+setPlotType = function(plot_type) {
+  selected_plot_type = plot_type;
+  updateUI();
+}
+
+// ----- Utility functions -----------------------------------------------------
+
+createMonitorLayer = function(geojson) {
+
+  var this_layer = L.geoJSON(geojson, {
+
+    // Icon appearance
+    pointToLayer: function (feature, latlng) {
+      return L.circleMarker(latlng, {
+        radius: 8,
+        fillColor: AQP.pm25ToColor(feature.properties.last_pm25),
+        color: "#000",
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.8,
+        riseOnHover: true,
+        riseOffset: 30000,
+        zIndexOffset: getZIndexOffset(feature, 'last_pm25') 
+      });
+    },
+
+    // Icon behavior
+    onEachFeature: function (feature, layer) {
+
+      let valueText;
+      if (isNaN(feature.properties.last_pm25)) {
+        valueText = "<span style='font-style:italic'> no data</span>";
+      } else {
+        valueText = feature.properties.last_pm25+ " &#xb5;g/m<sup>3</sup>";
+      }
+      layer.bindPopup(feature.properties.locationName + "<br>" + valueText);
+
+      layer.on('mouseover', function(e) {
+        this.openPopup();
+      });
+
+      layer.on('mouseout', function(e) {
+        this.closePopup();
+      });    
+
+      layer.on("click", function(e) {
+        selected_id = feature.properties.deviceDeploymentID;
+        updateUI();
+      });
+
+    }
+
+  });
+  return(this_layer);
+}
+
+// // Create a leaflet layer of monitor icons and associated info
+// pointToLayer = function (feature, latlng) {
+//   return L.circleMarker(latlng, {
+//     radius: 8,
+//     fillColor: AQP.pm25ToColor(feature.properties.last_pm25),
+//     color: "#000",
+//     weight: 1,
+//     opacity: 1,
+//     fillOpacity: 0.8,
+//     // riseOnHover: true,
+//     // riseOffset: 30000,
+//     // zIndexOffset: getZIndexOffset(feature, category)
+//   });
+// }
+
+// onEachFeature = function(feature, layer) {
+//   layer.bindPopup(feature.properties.locationName);
+// }
+    // pointToLayer: function (feature, latlng) {
+    //   feature.properties.reverse_latency = feature.properties.latency;
+    //     return L.marker(latlng, {
+    //       icon: getIcon(feature, category, selected.includes(feature.properties.monitorID)),
+    //       riseOnHover: true,
+    //       riseOffset: 30000,
+    //       zIndexOffset: getZIndexOffset(feature, category)
+    //     });
+    //   },
+    // onEachFeature: function (feature, layer) {
+    //   var monitorID = feature.properties.monitorID;
+    //   feature.properties.longitude = feature.geometry.coordinates[0];
+    //   feature.properties.latitude = feature.geometry.coordinates[1];
+    //   // NOTE:  $scope.$watch watches for a change and calls a listener using this form:
+    //   // NOTE:  $scope.$watch(valueFunction, listenerFunction)
+    //   // NOTE:  valueFunction returns the value being watched. $scope.$watch calls listenerFunction if the value changes.
+    //   // NOTE:  http://tutorials.jenkov.com/angularjs/watch-digest-apply.html
+
+    //   // Change icon when selectedMonitors changes
+    //   $scope.$watch(
+    //     function(scope) {return $scope.selectedMonitors.includes(monitorID);},
+    //     function(newValue, oldValue) {
+    //       var zIndexOffset;
+    //       layer.setIcon(getIcon(feature, $scope.category, newValue));
+    //       layer.setZIndexOffset(getZIndexOffset(feature, $scope.category, newValue));
+    //     });
+
+    //   // Change icon when category changes
+    //   $scope.$watch(
+    //     function() {return $scope.category;},
+    //     function(newVal, oldval){
+    //       layer.setIcon(getIcon(feature, newVal, selected.includes(monitorID)));
+    //       layer.setZIndexOffset(getZIndexOffset(feature, newVal, selected.includes(monitorID)));
+    //     }
+    //   );
+
+    //   // Define popup
+    //   // CHANGE REQUEST FROM SIM on May 02, 2018
+    //   // var valueText;
+    //   // if (isNaN(feature.properties["PM2.5_nowcast"])) {
+    //   //   valueText = "<span style='font-style:italic'> no data</span>";
+    //   // } else {
+    //   //   valueText = feature.properties["PM2.5_nowcast"] + " &#xb5;g/m<sup>3</sup>";
+    //   // }
+    //   layer.bindPopup(feature.properties.popup);
+
+
+    //   // Define click and mouseover events
+    //   layer.on("click",
+    //     function(e) {
+    //       // NOTE:  $scope.$apply wraps a function, refreshing the view after calling the function.
+    //       // NOTE:  http://jimhoskins.com/2012/12/17/angularjs-and-apply.html
+    //       $scope.$apply($scope.updateMonitor()(monitorID));
+    //     });
+    //   layer.on('mouseover', function(e) {
+    //     this.openPopup();
+    //     $scope.$apply($scope.hover()(monitorID));
+    //     //this.setIcon(getIcon(feature, true)); // Changing the icon on mouseover is very slow
+    //   });
+    //   layer.on('mouseout', function(e) {
+    //     this.closePopup();
+    //     $scope.$apply($scope.hover()(""));
+    //     //this.setIcon(getIcon(feature, selected));
+    //   });
+
+    // }
+//   });
+//   return this_layer;
+// }
+
+// get appropriate z-index offset for plotting order
+function getZIndexOffset(feature, category, selected) {
+  if (isNaN(feature.properties[category])) {
+    if (selected) {
+      return 15000;
+    } else {
+      return 0;
+    }
+  }
+  if (selected) {
+    return feature.properties[category] * 10 +15000;
+  } else {
+    return feature.properties[category] * 10;
   }
 }
 
