@@ -510,10 +510,19 @@ class Monitor {
     let scaledRateOfChange = (max - min) / max;
     let weightFactor = 1 - scaledRateOfChange < 0.5 ? 0.5 : 1 - scaledRateOfChange;
 
-    let weightedSum = x
+    // TODO:  Check for any valid values before attempting to reduce.
+    // TODO:  If all NaN, then simple return null.
+
+    let weightedValues = x
       .map((o,i) => o * Math.pow(weightFactor,i)) // maps onto an array including NaN
       .filter(x => !Number.isNaN(x))              // remove NaN before calculating sum
-      .reduce((a,o) => a + o);                    // sum of all valid numbers
+
+    let weightedSum = null;
+    if (weightedValues.length == 0) {
+      return(null);
+    } else {
+      weightedSum = weightedValues.reduce((a,o) => a + o); 
+    }
 
     let weightFactorSum = validIndices
       .map(o => Math.pow(weightFactor, o))

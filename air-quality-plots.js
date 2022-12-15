@@ -2,7 +2,6 @@
 
 // Requires:
 //  * https://www.highcharts.com
-//  * https://uwdata.github.io/arquero/
 //  * https://momentjs.com
 //  * https://momentjs.com/timezone/
 

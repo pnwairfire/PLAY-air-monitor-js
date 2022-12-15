@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arquero Test</title>
+  <link rel="icon" href="data:;base64,=">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" 
+        integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" 
+        crossorigin="anonymous">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+        integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI="
+        crossorigin=""/>
+  <style>
+    #container {
+      margin: 10px;
+    }
+    label.bold-label {
+      font-size: larger;
+      padding-right: 10px;
+    }
+    /* Leaflet */
+    #map { 
+      margin-top: 40px;
+      height: 350px; 
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- Load javascript -->
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/data.js"></script>
+<!--
+  * Disabling exporting for now
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
+-->
+
+<!--
+  *                    moment: required by Highcharts to properly display local times
+  *                   leaflet: mapping
+  *                   arquero: required by air-monitor.js
+  *                   suncalc: sunrise/sunset calculations
+  *               air-monitor: defines the Monitor class
+  *         air-quality-plots: Highcharts plotting functions
+  * air-monitor-plotFunctions: adapters to run the plotting functions
+-->
+<script src="./moment.min.js"></script>
+<script src="./moment-timezone-with-data-1970-2030.min.js"></script>
+
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+        integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM="
+        crossorigin=""></script>
+
+<script src="https://cdn.jsdelivr.net/npm/arquero@latest"></script>
+
+<script src="./suncalc.js"></script>
+
+<script src="./air-monitor.js"></script>
+<script src="./air-quality-plots.js"></script>
+<script src="./air-monitor-plotFunctions.js"></script>
+
+<!------ Begin page ----------------------------------------------------------->
+
+<div id="container">
+
+  <div class="row">
+    <div class="col-sm-12">
+      <button id="plot-button"disabled onclick="selectRandomMonitor()">Select random monitor</button>
+      <span id="status">Loading...</span>
+    </div>
+  </div>
+
+  <hr>
+  
+  <div class="row">
+    <div class="col-sm-12">
+      <h1 id="locationName"></h1>
+    </div>
+  </div>
+
+  <div class="row">
+
+    <div class="col-sm-4">
+
+      <div>
+        <span>Near sompeplace...</span><br>
+        <span>AQSID:</span><b id="AQSID"></b><br>
+        <span>QC report link</span>
+      </div>
+
+    </div>
+
+    <div class="col-sm-8">
+
+      <div id="button-row" class="row">
+        <div class="col-sm-12">
+          <label class="bold-label">Recent:</label>
+          <button  class="btn btn-sm btn-primary" onClick="selectPlotType('timeseriesPlot')">Hourly</button>
+          <button  class="btn btn-sm btn-primary" onClick="selectPlotType('dailyBarplot')">Daily</button>
+          <button  class="btn btn-sm btn-primary" onClick="selectPlotType('diurnalPlot')">Diurnal</button>
+        </div>
+        <!--
+        <div class="col-sm-6">
+          <label class="bold-label">Long Term:</label>
+          <button disabled="true" class="btn  btn-sm btn-primary" onClick="selectPlotType('YTDPlot')">YTD</button>
+          <button disabled="true" class="btn  btn-sm btn-primary" onClick="selectPlotType('statsPlot')">Stats</button>
+        </div>
+        -->
+      </div>
+
+    </div> 
+
+  </div>
+   
+  <div class="row">
+
+    <div class="col-sm-4">
+      <div id="map"></div>
+    </div>
+
+    <div class="col-sm-8">
+      <div id="plot"></div>
+    </div> 
+
+  </div>
+   
+</div> 
+
+<!------ End page ------------------------------------------------------------->
+
+<!------ Begin javascript ----------------------------------------------------->
+
+<script>
+
+// ----- Initialize ------------------------------------------------------------
+
+let AQP = new AirQualityPlot;
+
+let all_monitors = null;
+let selected_id = null;
+let selected_plot_type = 'timeseriesPlot';
+let PA_sensors = null;
+
+var map = L.map('map').setView([40, -100], 10);
+
+const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
+
+
+document.addEventListener('DOMContentLoaded', function () {
+  loadData(); 
+});
+
+// ----- Load data -------------------------------------------------------------
+
+// Load data and combine after all data are loaded
+loadData = async function() {
+
+  // These temporary objects are only for loading data
+  let m1 = new Monitor;
+  let m2 = new Monitor;
+  let m3 = new Monitor;
+
+  // Block until data arrives.
+  console.time('loadData');
+  await m1.loadLatest('airnow');
+  await m2.loadLatest('airsis');
+  await m3.loadLatest('wrcc');
+  console.timeEnd('loadData');
+
+  // Combine after all data has been downlaoded
+  console.time('combine');
+  document.querySelector("#status").textContent = "Combining...";
+  all_monitors = m1.combine(m2).combine(m3).dropEmpty(); 
+  console.timeEnd('combine');
+
+  console.time('createMap');
+  document.querySelector("#status").textContent = "Creating map...";
+  let monitorGeoJSON = all_monitors.createGeoJSON();
+  createMonitorLayer(monitorGeoJSON).addTo(map);
+  console.timeEnd('createMap');
+
+  // Update the user interface
+  document.querySelector("#status").textContent = "Loaded " + all_monitors.count() + " monitors.";
+  document.querySelector("#plot-button").disabled = false;
+
+  // Initialize interface
+  selected_id = all_monitors.meta.sample(1).get('deviceDeploymentID');
+
+  updateMapView();
+  updateUI();
+ 
+}
+
+// ----- UI events -------------------------------------------------------------
+
+// Select a specific monitor and update the UI
+selectRandomMonitor = function() {
+  selected_id = all_monitors.meta.sample(1).get('deviceDeploymentID');
+  updateMapView();
+  updateUI();
+}
+
+selectPlotType = function(plot_type) {
+  selected_plot_type = plot_type;
+  updateUI();
+}
+
+updateUI = function() {
+  document.querySelector("#locationName").textContent = all_monitors.getMetadata(selected_id, 'locationName');
+  document.querySelector("#AQSID").textContent = all_monitors.getMetadata(selected_id, 'AQSID');
+
+  switch(selected_plot_type) {
+    case 'timeseriesPlot':
+      timeseriesPlot('plot', all_monitors, selected_id);
+      break;
+    case 'dailyBarplot':
+      dailyBarplot('plot', all_monitors, selected_id);
+      break;
+    case 'diurnalPlot':
+      diurnalPlot('plot', all_monitors, selected_id);
+      break;
+    default:
+      timeseriesPlot('plot', all_monitors, selected_id);
+      break;
+  }  
+}
+
+updateMapView = function() {
+  map.setView({
+    lng: all_monitors.getMetadata(selected_id, 'longitude'), 
+    lat: all_monitors.getMetadata(selected_id, 'latitude')
+  });
+  addPASensors();
+}
+
+addPASensors = async function() {
+
+  // THIS WORKS:
+  //
+  // let url = 'https://api.github.com/repos/javascript-tutorial/en.javascript.info/commits';
+  // let response = await fetch(url);
+  // let commits = await response.json(); // read response body and parse as JSON
+  // console.log(commits[0].author.login);
+
+  // THIS DOESN'T WORK
+  //
+  let url = "https://near-me.airfire.org/near-me/purple-air?lat=48.0&lng=-122.1&limit=1";
+  let options = { mode: "no-cors" };
+  let response = await fetch(url, options);
+  let PA_sensors = await response.json();
+
+  // Generates "Uncaught (in promise) SyntaxError: Unexpected end of input" error
+
+  if (response.ok) { // if HTTP-status is 200-299
+    let json = await response.json();
+  } else {
+    alert("HTTP-Error: " + response.status);
+  }
+
+  let dummy = 1;
+
+}
+
+// ----- Utility functions -----------------------------------------------------
+
+createMonitorLayer = function(geojson) {
+
+  var this_layer = L.geoJSON(geojson, {
+
+    // Icon appearance
+    pointToLayer: function (feature, latlng) {
+      return L.circleMarker(latlng, {
+        radius: 8,
+        fillColor: AQP.pm25ToColor(feature.properties.last_pm25),
+        color: "#000",
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.8,
+        // riseOnHover: true,
+        // riseOffset: 30000,
+        // zIndexOffset: getZIndexOffset(feature, 'last_pm25') 
+      });
+    },
+
+    // Icon behavior
+    onEachFeature: function (feature, layer) {
+
+      let valueText;
+      if (isNaN(feature.properties.last_pm25)) {
+        valueText = "<span style='font-style:italic'> no data</span>";
+      } else {
+        valueText = feature.properties.last_pm25+ " &#xb5;g/m<sup>3</sup>";
+      }
+      layer.bindPopup(feature.properties.locationName + "<br>" + valueText);
+
+      layer.on('mouseover', function(e) {
+        this.openPopup();
+      });
+
+      layer.on('mouseout', function(e) {
+        this.closePopup();
+      });    
+
+      layer.on("click", function(e) {
+        selected_id = feature.properties.deviceDeploymentID;
+        updateUI();
+      });
+
+    }
+
+  });
+  return(this_layer);
+}
+
+// // get appropriate z-index offset for plotting order
+// function getZIndexOffset(feature, category, selected) {
+//   if (isNaN(feature.properties[category])) {
+//     if (selected) {
+//       return 15000;
+//     } else {
+//       return 0;
+//     }
+//   }
+//   if (selected) {
+//     return feature.properties[category] * 10 +15000;
+//   } else {
+//     return feature.properties[category] * 10;
+//   }
+// }
+
+</script>  
+
+</body>
+
+</html>
+
