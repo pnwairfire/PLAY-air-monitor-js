@@ -241,29 +241,42 @@ updateMapView = function() {
   addPASensors();
 }
 
-addPASensors = async function() {
+addPASensors = async function(sensorCount = 20) {
 
-  // THIS WORKS:
-  //
-  // let url = 'https://api.github.com/repos/javascript-tutorial/en.javascript.info/commits';
-  // let response = await fetch(url);
-  // let commits = await response.json(); // read response body and parse as JSON
-  // console.log(commits[0].author.login);
+  let url = "https://near-me.airfire.org/near-me/purple-air" +
+     "?lat=" + map.getCenter().lat +
+     "&lng=" + map.getCenter().lng +
+     "&limit=" + sensorCount;
+  let response = await fetch(url);
+  let jsonObj = await response.json();
+  let sensors = jsonObj.purpleAir;
 
-  // THIS DOESN'T WORK
-  //
-  let url = "https://near-me.airfire.org/near-me/purple-air?lat=48.0&lng=-122.1&limit=1";
-  let options = { mode: "no-cors" };
-  let response = await fetch(url, options);
-  let PA_sensors = await response.json();
+  sensors.forEach((o,i) => {
+    L.circleMarker([o.lat, o.lng], {
+      radius: 4,
+      fillColor: AQP.pm25ToColor(o.nowcast),
+      color: "#000",
+      weight: 1,
+      opacity: 1,
+      fillOpacity: 0.8,
+    }).addTo(map);
+  });
+  
+  // TODO:  handle error response
 
-  // Generates "Uncaught (in promise) SyntaxError: Unexpected end of input" error
-
-  if (response.ok) { // if HTTP-status is 200-299
-    let json = await response.json();
-  } else {
-    alert("HTTP-Error: " + response.status);
-  }
+//   PA_sensors.purpleAir[0]
+// {lat: 43.590473, lng: -119.06031, sensorIndex: '26011', ts: '2022-12-15T22:00:00+00:00', timezone: 'America/Los_Angeles', …}
+// bearing: 276.1585841188590,
+// direction: "W",
+// distanceMiles: 0.6,
+// epaPm25: 7.4,
+// lat: 43.590473,
+// lng: -119.06031,
+// nowcast: 8,
+// pm25: 12.6,
+// sensorIndex: "26011",
+// timezone: "America/Los_Angeles",
+// ts: "2022-12-15T22:00:00+00:00",
 
   let dummy = 1;
 
@@ -284,9 +297,6 @@ createMonitorLayer = function(geojson) {
         weight: 1,
         opacity: 1,
         fillOpacity: 0.8,
-        // riseOnHover: true,
-        // riseOffset: 30000,
-        // zIndexOffset: getZIndexOffset(feature, 'last_pm25') 
       });
     },
 
