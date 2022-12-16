@@ -104,13 +104,6 @@
           <button  class="btn btn-sm btn-primary" onClick="selectPlotType('dailyBarplot')">Daily</button>
           <button  class="btn btn-sm btn-primary" onClick="selectPlotType('diurnalPlot')">Diurnal</button>
         </div>
-        <!--
-        <div class="col-sm-6">
-          <label class="bold-label">Long Term:</label>
-          <button disabled="true" class="btn  btn-sm btn-primary" onClick="selectPlotType('YTDPlot')">YTD</button>
-          <button disabled="true" class="btn  btn-sm btn-primary" onClick="selectPlotType('statsPlot')">Stats</button>
-        </div>
-        -->
       </div>
 
     </div> 
@@ -213,6 +206,13 @@ selectPlotType = function(plot_type) {
   updateUI();
 }
 
+selectMonitor = function() {
+  updateUI()
+  let lat = all_monitors.getMetadata(selected_id, 'latitude');
+  let lng = all_monitors.getMetadata(selected_id, 'longitude');
+  addPASensors(lat, lng);
+}
+
 updateUI = function() {
   document.querySelector("#locationName").textContent = all_monitors.getMetadata(selected_id, 'locationName');
   document.querySelector("#AQSID").textContent = all_monitors.getMetadata(selected_id, 'AQSID');
@@ -241,12 +241,18 @@ updateMapView = function() {
   addPASensors();
 }
 
-addPASensors = async function(sensorCount = 20) {
+addPASensors = async function(lat = null, lng = null, sensorCount = 20) {
 
+  if (lat === null || lng === null) {
+    lat = map.getCenter().lat;
+    lng = map.getCenter().lng;
+  }
+  
   let url = "https://near-me.airfire.org/near-me/purple-air" +
-     "?lat=" + map.getCenter().lat +
-     "&lng=" + map.getCenter().lng +
+     "?lat=" + lat +
+     "&lng=" + lng +
      "&limit=" + sensorCount;
+
   let response = await fetch(url);
   let jsonObj = await response.json();
   let sensors = jsonObj.purpleAir;
@@ -277,8 +283,6 @@ addPASensors = async function(sensorCount = 20) {
 // sensorIndex: "26011",
 // timezone: "America/Los_Angeles",
 // ts: "2022-12-15T22:00:00+00:00",
-
-  let dummy = 1;
 
 }
 
@@ -321,7 +325,7 @@ createMonitorLayer = function(geojson) {
 
       layer.on("click", function(e) {
         selected_id = feature.properties.deviceDeploymentID;
-        updateUI();
+        selectMonitor();
       });
 
     }
@@ -330,21 +334,6 @@ createMonitorLayer = function(geojson) {
   return(this_layer);
 }
 
-// // get appropriate z-index offset for plotting order
-// function getZIndexOffset(feature, category, selected) {
-//   if (isNaN(feature.properties[category])) {
-//     if (selected) {
-//       return 15000;
-//     } else {
-//       return 0;
-//     }
-//   }
-//   if (selected) {
-//     return feature.properties[category] * 10 +15000;
-//   } else {
-//     return feature.properties[category] * 10;
-//   }
-// }
 
 </script>  
 
